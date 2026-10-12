@@ -3,18 +3,29 @@ import { queryOptions, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-export type Category = Database["public"]["Enums"]["category"];
+export type Gender = Database["public"]["Enums"]["category"];
+export type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
 export type EventType = Database["public"]["Enums"]["event_type"];
 export type MatchStatus = Database["public"]["Enums"]["match_status"];
 export type Team = Database["public"]["Tables"]["teams"]["Row"];
 export type Match = Database["public"]["Tables"]["matches"]["Row"];
 export type MatchEvent = Database["public"]["Tables"]["match_events"]["Row"];
 
-export const CATEGORIES: { value: Category; label: string }[] = [
+export const GENDERS: { value: Gender; label: string }[] = [
   { value: "varonil", label: "Varonil" },
   { value: "femenil", label: "Femenil" },
-  { value: "mixto", label: "under 10 mixto" },
+  { value: "mixto", label: "Mixto" },
 ];
+
+export const categoriesQuery = () =>
+  queryOptions({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("*").order("sort_order").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
 
 export const EVENT_LABELS: Record<EventType, { label: string; short: string; points: number }> = {
   td: { label: "Touchdown", short: "TD", points: 6 },
@@ -23,6 +34,7 @@ export const EVENT_LABELS: Record<EventType, { label: string; short: string; poi
   safety: { label: "Safety", short: "SAF", points: 2 },
   int: { label: "Intercepción", short: "INT", points: 0 },
   sack: { label: "Sack", short: "SACK", points: 0 },
+  pass_td: { label: "Pase de TD (QB)", short: "PASE", points: 0 },
 };
 
 export const STATUS_LABELS: Record<MatchStatus, string> = {
@@ -31,26 +43,27 @@ export const STATUS_LABELS: Record<MatchStatus, string> = {
   final: "Final",
 };
 
-export function parseCategory(v: unknown): Category {
-  return v === "femenil" || v === "mixto" ? v : "varonil";
+/** `cat` search param holds a category id; empty means "first category". */
+export function parseCategory(v: unknown): string {
+  return typeof v === "string" ? v : "";
 }
 
-export const teamsQuery = (cat: Category) =>
+export const teamsQuery = (cat: string) =>
   queryOptions({
     queryKey: ["teams", cat],
     queryFn: async () => {
-      const { data, error } = await supabase.from("teams").select("*").eq("category", cat).order("name");
+      const { data, error } = await supabase.from("teams").select("*").eq("category_id", cat).order("name");
       if (error) throw error;
       return data;
     },
   });
 
-export const matchesQuery = (cat?: Category) =>
+export const matchesQuery = (cat?: string) =>
   queryOptions({
     queryKey: ["matches", cat ?? "all"],
     queryFn: async () => {
       let q = supabase.from("matches").select("*").order("scheduled_at");
-      if (cat) q = q.eq("category", cat);
+      if (cat) q = q.eq("category_id", cat);
       const { data, error } = await q;
       if (error) throw error;
       return data;
@@ -67,14 +80,14 @@ export const allTeamsQuery = () =>
     },
   });
 
-export const eventsByCategoryQuery = (cat: Category) =>
+export const eventsByCategoryQuery = (cat: string) =>
   queryOptions({
     queryKey: ["events", "cat", cat],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("match_events")
-        .select("*, matches!inner(category)")
-        .eq("matches.category", cat);
+        .select("*, matches!inner(category_id)")
+        .eq("matches.category_id", cat);
       if (error) throw error;
       return data as unknown as MatchEvent[];
     },
@@ -107,6 +120,12 @@ export function useLiveTournament() {
         qc.invalidateQueries({ queryKey: ["events"] });
         qc.invalidateQueries({ queryKey: ["matches"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "categories" }, () =>
+        qc.invalidateQueries({ queryKey: ["categories"] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "teams" }, () =>
+        qc.invalidateQueries({ queryKey: ["teams"] }),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -144,7 +163,7 @@ export function computeStandings(teams: Team[], matches: Match[]): StandingRow[]
 
 export type LeaderRow = {
   key: string; team: Team | undefined; jersey: number;
-  td: number; conv1: number; conv2: number; safety: number; int: number; sack: number; points: number;
+  td: number; conv1: number; conv2: number; safety: number; int: number; sack: number; pass_td: number; points: number;
 };
 
 export function computeLeaders(events: MatchEvent[], teams: Team[]): LeaderRow[] {
@@ -154,7 +173,7 @@ export function computeLeaders(events: MatchEvent[], teams: Team[]): LeaderRow[]
     const key = `${e.team_id}-${e.jersey}`;
     let row = map.get(key);
     if (!row) {
-      row = { key, team: byId.get(e.team_id), jersey: e.jersey, td: 0, conv1: 0, conv2: 0, safety: 0, int: 0, sack: 0, points: 0 };
+      row = { key, team: byId.get(e.team_id), jersey: e.jersey, td: 0, conv1: 0, conv2: 0, safety: 0, int: 0, sack: 0, pass_td: 0, points: 0 };
       map.set(key, row);
     }
     row[e.event_type]++;
