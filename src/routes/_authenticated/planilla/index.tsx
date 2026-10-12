@@ -24,8 +24,6 @@ export const Route = createFileRoute("/_authenticated/planilla/")({
 function ScorerHome() {
   const { user } = Route.useRouteContext();
   useLiveTournament();
-  const role = useQuery({ ...{ queryKey: ["noop"] }, enabled: false });
-  void role;
   const scorer = useScorerRole(user.id);
   const teams = useQuery(allTeamsQuery());
   const matches = useQuery(matchesQuery());
