@@ -14,16 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      match_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_type: Database["public"]["Enums"]["event_type"]
+          id: string
+          jersey: number
+          match_id: string
+          points: number
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_type: Database["public"]["Enums"]["event_type"]
+          id?: string
+          jersey: number
+          match_id: string
+          points?: number
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_type?: Database["public"]["Enums"]["event_type"]
+          id?: string
+          jersey?: number
+          match_id?: string
+          points?: number
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_events_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_events_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          away_score: number
+          away_team_id: string
+          category: Database["public"]["Enums"]["category"]
+          created_at: string
+          field: string
+          home_score: number
+          home_team_id: string
+          id: string
+          round: number
+          scheduled_at: string
+          status: Database["public"]["Enums"]["match_status"]
+        }
+        Insert: {
+          away_score?: number
+          away_team_id: string
+          category: Database["public"]["Enums"]["category"]
+          created_at?: string
+          field?: string
+          home_score?: number
+          home_team_id: string
+          id?: string
+          round?: number
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["match_status"]
+        }
+        Update: {
+          away_score?: number
+          away_team_id?: string
+          category?: Database["public"]["Enums"]["category"]
+          created_at?: string
+          field?: string
+          home_score?: number
+          home_team_id?: string
+          id?: string
+          round?: number
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["match_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          category: Database["public"]["Enums"]["category"]
+          created_at: string
+          id: string
+          name: string
+          short_name: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["category"]
+          created_at?: string
+          id?: string
+          name: string
+          short_name: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["category"]
+          created_at?: string
+          id?: string
+          name?: string
+          short_name?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_score: { Args: { _user_id: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "planillero"
+      category: "varonil" | "femenil" | "mixto"
+      event_type: "td" | "conv1" | "conv2" | "safety" | "int" | "sack"
+      match_status: "programado" | "en_vivo" | "final"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +306,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "planillero"],
+      category: ["varonil", "femenil", "mixto"],
+      event_type: ["td", "conv1", "conv2", "safety", "int", "sack"],
+      match_status: ["programado", "en_vivo", "final"],
+    },
   },
 } as const
