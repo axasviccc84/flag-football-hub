@@ -4,7 +4,7 @@ import { matchesQuery, parseCategory, teamsQuery, useLiveTournament } from "@/li
 import { MatchCard } from "@/components/MatchCard";
 
 export const Route = createFileRoute("/calendario")({
-  validateSearch: (s: Record<string, unknown>) => ({ cat: parseCategory(s.cat) }),
+  validateSearch: (s: Record<string, unknown>) => ({ cat: parseCategory(s["cat"]) }),
   head: () => ({
     meta: [
       { title: "Calendario de Partidos · Torneo Flag Football" },

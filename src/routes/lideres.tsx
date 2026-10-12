@@ -5,7 +5,7 @@ import { computeLeaders, eventsByCategoryQuery, parseCategory, teamsQuery, useLi
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/lideres")({
-  validateSearch: (s: Record<string, unknown>) => ({ cat: parseCategory(s.cat) }),
+  validateSearch: (s: Record<string, unknown>) => ({ cat: parseCategory(s["cat"]) }),
   head: () => ({
     meta: [
       { title: "Tabla de Líderes · Torneo Flag Football" },

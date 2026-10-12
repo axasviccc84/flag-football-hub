@@ -4,7 +4,7 @@ import { computeStandings, matchesQuery, parseCategory, teamsQuery, useLiveTourn
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
-  validateSearch: (s: Record<string, unknown>) => ({ cat: parseCategory(s.cat) }),
+  validateSearch: (s: Record<string, unknown>) => ({ cat: parseCategory(s["cat"]) }),
   head: () => ({
     meta: [
       { title: "Tabla de Posiciones · Torneo Flag Football IFAF" },

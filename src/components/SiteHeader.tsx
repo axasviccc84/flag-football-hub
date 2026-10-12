@@ -10,7 +10,7 @@ const NAV = [
 
 export function SiteHeader() {
   const { pathname, search } = useRouterState({ select: (s) => s.location });
-  const cat = parseCategory((search as Record<string, unknown>).cat);
+  const cat = parseCategory((search as Record<string, unknown>)["cat"]);
   const isPublic = pathname === "/" || pathname === "/calendario" || pathname === "/lideres";
 
   return (
