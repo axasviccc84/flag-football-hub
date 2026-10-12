@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          gender: Database["public"]["Enums"]["category"]
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          gender: Database["public"]["Enums"]["category"]
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          gender?: Database["public"]["Enums"]["category"]
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       match_events: {
         Row: {
           created_at: string
@@ -67,6 +91,7 @@ export type Database = {
           away_score: number
           away_team_id: string
           category: Database["public"]["Enums"]["category"]
+          category_id: string | null
           created_at: string
           field: string
           home_score: number
@@ -80,6 +105,7 @@ export type Database = {
           away_score?: number
           away_team_id: string
           category: Database["public"]["Enums"]["category"]
+          category_id?: string | null
           created_at?: string
           field?: string
           home_score?: number
@@ -93,6 +119,7 @@ export type Database = {
           away_score?: number
           away_team_id?: string
           category?: Database["public"]["Enums"]["category"]
+          category_id?: string | null
           created_at?: string
           field?: string
           home_score?: number
@@ -111,6 +138,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "matches_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "matches_home_team_id_fkey"
             columns: ["home_team_id"]
             isOneToOne: false
@@ -122,6 +156,7 @@ export type Database = {
       teams: {
         Row: {
           category: Database["public"]["Enums"]["category"]
+          category_id: string | null
           created_at: string
           id: string
           name: string
@@ -129,6 +164,7 @@ export type Database = {
         }
         Insert: {
           category: Database["public"]["Enums"]["category"]
+          category_id?: string | null
           created_at?: string
           id?: string
           name: string
@@ -136,12 +172,21 @@ export type Database = {
         }
         Update: {
           category?: Database["public"]["Enums"]["category"]
+          category_id?: string | null
           created_at?: string
           id?: string
           name?: string
           short_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "teams_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -178,7 +223,14 @@ export type Database = {
     Enums: {
       app_role: "admin" | "planillero"
       category: "varonil" | "femenil" | "mixto"
-      event_type: "td" | "conv1" | "conv2" | "safety" | "int" | "sack"
+      event_type:
+        | "td"
+        | "conv1"
+        | "conv2"
+        | "safety"
+        | "int"
+        | "sack"
+        | "pass_td"
       match_status: "programado" | "en_vivo" | "final"
     }
     CompositeTypes: {
@@ -309,7 +361,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "planillero"],
       category: ["varonil", "femenil", "mixto"],
-      event_type: ["td", "conv1", "conv2", "safety", "int", "sack"],
+      event_type: ["td", "conv1", "conv2", "safety", "int", "sack", "pass_td"],
       match_status: ["programado", "en_vivo", "final"],
     },
   },
