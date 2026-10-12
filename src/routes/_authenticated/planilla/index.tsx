@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { allTeamsQuery, matchesQuery, CATEGORIES, useLiveTournament } from "@/lib/tournament";
+import { allTeamsQuery, categoriesQuery, matchesQuery, useLiveTournament } from "@/lib/tournament";
 import { MatchCard } from "@/components/MatchCard";
 import { useScorerRole } from "@/lib/use-scorer";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,7 @@ function ScorerHome() {
   const scorer = useScorerRole(user.id);
   const teams = useQuery(allTeamsQuery());
   const matches = useQuery(matchesQuery());
+  const cats = useQuery(categoriesQuery());
   const teamMap = new Map((teams.data ?? []).map((t) => [t.id, t]));
 
   return (
@@ -40,11 +41,12 @@ function ScorerHome() {
           Tu cuenta ({user.email}) aún no tiene permiso de planillero. Pide al administrador que te lo asigne.
         </div>
       )}
-      {CATEGORIES.map((c) => {
-        const list = (matches.data ?? []).filter((m) => m.category === c.value);
+      {(cats.data ?? []).map((c) => {
+        const list = (matches.data ?? []).filter((m) => m.category_id === c.id);
+        if (list.length === 0) return null;
         return (
-          <div key={c.value}>
-            <h2 className="mb-3 text-2xl text-primary">{c.label}</h2>
+          <div key={c.id}>
+            <h2 className="mb-3 text-2xl text-primary">{c.name}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {list.map((m) => (
                 <Link key={m.id} to="/planilla/$matchId" params={{ matchId: m.id }} className="block transition-transform hover:-translate-y-0.5">

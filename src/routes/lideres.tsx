@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { computeLeaders, eventsByCategoryQuery, parseCategory, teamsQuery, useLiveTournament, type LeaderRow } from "@/lib/tournament";
+import { computeLeaders, eventsByCategoryQuery, parseCategory, teamsQuery, useLiveTournament, useCategory, type LeaderRow } from "@/lib/tournament";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/lideres")({
@@ -22,23 +22,27 @@ export const Route = createFileRoute("/lideres")({
 const SORTS: { key: keyof LeaderRow; label: string }[] = [
   { key: "points", label: "Puntos" },
   { key: "td", label: "TDs" },
+  { key: "pass_td", label: "Pases de TD" },
+  { key: "conv1", label: "Conv. 1" },
+  { key: "conv2", label: "Conv. 2" },
   { key: "int", label: "INTs" },
   { key: "sack", label: "Sacks" },
 ];
 
 function Leaders() {
   const { cat } = Route.useSearch();
+  const category = useCategory(cat);
   useLiveTournament();
   const [sort, setSort] = useState<keyof LeaderRow>("points");
-  const teams = useQuery(teamsQuery(cat));
-  const events = useQuery(eventsByCategoryQuery(cat));
+  const teams = useQuery({ ...teamsQuery(category.id), enabled: !!category.id });
+  const events = useQuery({ ...eventsByCategoryQuery(category.id), enabled: !!category.id });
   const rows = computeLeaders(events.data ?? [], teams.data ?? [])
     .filter((r) => (r[sort] as number) > 0)
     .sort((a, b) => (b[sort] as number) - (a[sort] as number) || b.points - a.points);
 
   return (
     <section>
-      <h1 className="text-4xl">Líderes</h1>
+      <h1 className="text-4xl">Líderes <span className="text-primary">{category.current?.name}</span></h1>
       <div className="my-4 flex flex-wrap gap-2">
         {SORTS.map((s) => (
           <button
@@ -61,6 +65,7 @@ function Leaders() {
               <th className="px-3 py-3 text-left">Jersey</th>
               <th className="px-3 py-3 text-left">Equipo</th>
               <th className="px-2 py-3 text-center">TD</th>
+              <th className="px-2 py-3 text-center">PASE TD</th>
               <th className="px-2 py-3 text-center">C1</th>
               <th className="px-2 py-3 text-center">C2</th>
               <th className="px-2 py-3 text-center">INT</th>
@@ -70,7 +75,7 @@ function Leaders() {
           </thead>
           <tbody>
             {rows.length === 0 && !events.isLoading && (
-              <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Sin registros todavía.</td></tr>
+              <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Sin registros todavía.</td></tr>
             )}
             {rows.map((r, i) => (
               <tr key={r.key} className="border-t border-border">
@@ -80,8 +85,9 @@ function Leaders() {
                 </td>
                 <td className="px-3 py-3 font-semibold">{r.team?.name}</td>
                 <td className={cn("px-2 py-3 text-center", sort === "td" && "font-bold text-primary")}>{r.td}</td>
-                <td className="px-2 py-3 text-center">{r.conv1}</td>
-                <td className="px-2 py-3 text-center">{r.conv2}</td>
+                <td className={cn("px-2 py-3 text-center", sort === "pass_td" && "font-bold text-primary")}>{r.pass_td}</td>
+                <td className={cn("px-2 py-3 text-center", sort === "conv1" && "font-bold text-primary")}>{r.conv1}</td>
+                <td className={cn("px-2 py-3 text-center", sort === "conv2" && "font-bold text-primary")}>{r.conv2}</td>
                 <td className={cn("px-2 py-3 text-center", sort === "int" && "font-bold text-primary")}>{r.int}</td>
                 <td className={cn("px-2 py-3 text-center", sort === "sack" && "font-bold text-primary")}>{r.sack}</td>
                 <td className="px-3 py-3 text-center font-display text-xl text-primary">{r.points}</td>

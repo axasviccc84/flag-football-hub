@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { queryOptions, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -186,4 +186,12 @@ export function formatDate(iso: string) {
   return new Date(iso).toLocaleString("es-MX", {
     weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   });
+}
+
+/** Resolves the `cat` search param to an existing category (falls back to the first). */
+export function useCategory(cat: string) {
+  const cats = useQuery(categoriesQuery());
+  const list = cats.data ?? [];
+  const current = list.find((c) => c.id === cat) ?? list[0];
+  return { categories: list, current, id: current?.id ?? "", isLoading: cats.isLoading };
 }
