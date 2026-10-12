@@ -1,24 +1,72 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { computeStandings, matchesQuery, parseCategory, teamsQuery, useLiveTournament, CATEGORIES } from "@/lib/tournament";
+import { cn } from "@/lib/utils";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  validateSearch: (s: Record<string, unknown>) => ({ cat: parseCategory(s.cat) }),
+  head: () => ({
+    meta: [
+      { title: "Tabla de Posiciones · Torneo Flag Football IFAF" },
+      { name: "description", content: "Posiciones en vivo del torneo de Flag Football: Varonil, Femenil y Mixto con reglas IFAF 2023." },
+      { property: "og:title", content: "Tabla de Posiciones · Torneo Flag Football" },
+      { property: "og:description", content: "JJ, JG, JP, PF, PC, DIF y PTS actualizados en tiempo real." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: Standings,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Standings() {
+  const { cat } = Route.useSearch();
+  useLiveTournament();
+  const teams = useQuery(teamsQuery(cat));
+  const matches = useQuery(matchesQuery(cat));
+  const rows = computeStandings(teams.data ?? [], matches.data ?? []);
+  const label = CATEGORIES.find((c) => c.value === cat)?.label;
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <section>
+      <h1 className="text-4xl">Posiciones <span className="text-primary">{label}</span></h1>
+      <p className="mb-4 text-sm text-muted-foreground">Victoria 3 pts · Empate 1 pt · Solo partidos finalizados</p>
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <table className="w-full text-sm tabular">
+          <thead className="bg-muted text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="px-3 py-3 text-left">#</th>
+              <th className="px-3 py-3 text-left">Equipo</th>
+              {["JJ", "JG", "JP", "PF", "PC", "DIF"].map((h) => (
+                <th key={h} className="px-2 py-3 text-center">{h}</th>
+              ))}
+              <th className="px-3 py-3 text-center text-primary">PTS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {teams.isLoading && (
+              <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Cargando…</td></tr>
+            )}
+            {rows.map((r, i) => (
+              <tr key={r.team.id} className="border-t border-border">
+                <td className={cn("px-3 py-3 font-display text-xl", i === 0 ? "text-accent" : "text-muted-foreground")}>{i + 1}</td>
+                <td className="px-3 py-3">
+                  <span className="mr-2 rounded bg-secondary px-1.5 py-0.5 font-display text-sm">{r.team.short_name}</span>
+                  <span className="font-semibold">{r.team.name}</span>
+                </td>
+                <td className="px-2 py-3 text-center">{r.jj}</td>
+                <td className="px-2 py-3 text-center">{r.jg}</td>
+                <td className="px-2 py-3 text-center">{r.jp}</td>
+                <td className="px-2 py-3 text-center">{r.pf}</td>
+                <td className="px-2 py-3 text-center">{r.pc}</td>
+                <td className={cn("px-2 py-3 text-center", r.dif > 0 && "text-success", r.dif < 0 && "text-destructive")}>
+                  {r.dif > 0 ? `+${r.dif}` : r.dif}
+                </td>
+                <td className="px-3 py-3 text-center font-display text-xl text-primary">{r.pts}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
