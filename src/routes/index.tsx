@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { computeStandings, matchesQuery, parseCategory, teamsQuery, useLiveTournament, CATEGORIES } from "@/lib/tournament";
+import { computeStandings, matchesQuery, parseCategory, teamsQuery, useLiveTournament, useCategory } from "@/lib/tournament";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -20,11 +20,12 @@ export const Route = createFileRoute("/")({
 
 function Standings() {
   const { cat } = Route.useSearch();
+  const category = useCategory(cat);
   useLiveTournament();
-  const teams = useQuery(teamsQuery(cat));
-  const matches = useQuery(matchesQuery(cat));
+  const teams = useQuery({ ...teamsQuery(category.id), enabled: !!category.id });
+  const matches = useQuery({ ...matchesQuery(category.id), enabled: !!category.id });
   const rows = computeStandings(teams.data ?? [], matches.data ?? []);
-  const label = CATEGORIES.find((c) => c.value === cat)?.label;
+  const label = category.current?.name;
 
   return (
     <section>

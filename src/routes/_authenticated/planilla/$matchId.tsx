@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  allTeamsQuery, eventsByMatchQuery, matchesQuery, useLiveTournament,
+  allTeamsQuery, categoriesQuery, eventsByMatchQuery, matchesQuery, useLiveTournament,
   EVENT_LABELS, STATUS_LABELS, type EventType, type MatchStatus,
 } from "@/lib/tournament";
 import { useScorerRole } from "@/lib/use-scorer";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/planilla/$matchId")({
   component: MatchCapture,
 });
 
-const EVENT_ORDER: EventType[] = ["td", "conv1", "conv2", "safety", "int", "sack"];
+const EVENT_ORDER: EventType[] = ["td", "conv1", "conv2", "safety", "int", "sack", "pass_td"];
 
 function MatchCapture() {
   const { matchId } = Route.useParams();
@@ -37,6 +37,7 @@ function MatchCapture() {
   const teams = useQuery(allTeamsQuery());
   const matches = useQuery(matchesQuery());
   const events = useQuery(eventsByMatchQuery(matchId));
+  const cats = useQuery(categoriesQuery());
   const match = matches.data?.find((m) => m.id === matchId);
   const teamMap = new Map((teams.data ?? []).map((t) => [t.id, t]));
 
@@ -93,7 +94,7 @@ function MatchCapture() {
 
       <div className="rounded-xl border border-border bg-field p-5">
         <div className="mb-2 text-center text-xs uppercase tracking-widest text-muted-foreground">
-          {match.category} · J{match.round} · {match.field} · <span className={cn(match.status === "en_vivo" && "text-live")}>{STATUS_LABELS[match.status]}</span>
+          {cats.data?.find((c) => c.id === match.category_id)?.name ?? match.category} · J{match.round} · {match.field} · <span className={cn(match.status === "en_vivo" && "text-live")}>{STATUS_LABELS[match.status]}</span>
         </div>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
           <div className="font-semibold">{home?.name}</div>
@@ -130,7 +131,7 @@ function MatchCapture() {
           ))}
         </div>
 
-        <label className="mt-4 block text-xs uppercase tracking-wider text-muted-foreground">Jersey #</label>
+        <label className="mt-4 block text-xs uppercase tracking-wider text-muted-foreground">Jersey # (para Pase de TD, el jersey del QB)</label>
         <input
           inputMode="numeric"
           pattern="[0-9]*"

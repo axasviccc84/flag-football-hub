@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { matchesQuery, parseCategory, teamsQuery, useLiveTournament } from "@/lib/tournament";
+import { matchesQuery, parseCategory, teamsQuery, useLiveTournament, useCategory } from "@/lib/tournament";
 import { MatchCard } from "@/components/MatchCard";
 
 export const Route = createFileRoute("/calendario")({
@@ -20,9 +20,10 @@ export const Route = createFileRoute("/calendario")({
 
 function Calendar() {
   const { cat } = Route.useSearch();
+  const category = useCategory(cat);
   useLiveTournament();
-  const teams = useQuery(teamsQuery(cat));
-  const matches = useQuery(matchesQuery(cat));
+  const teams = useQuery({ ...teamsQuery(category.id), enabled: !!category.id });
+  const matches = useQuery({ ...matchesQuery(category.id), enabled: !!category.id });
   const teamMap = new Map((teams.data ?? []).map((t) => [t.id, t]));
   const rounds = new Map<number, typeof matches.data>();
   for (const m of matches.data ?? []) rounds.set(m.round, [...(rounds.get(m.round) ?? []), m]);
