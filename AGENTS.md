@@ -8,3 +8,9 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Architecture rules
+- Match scores are computed by DB triggers from `match_events`; never write scores from the client (single source of truth).
+- Standings and leaders are derived client-side in `src/lib/tournament.ts` from matches/events (no stored aggregates to drift).
+- Write access is gated by `user_roles` (`admin`/`planillero`) via `can_score()` RLS; public tables are anon-readable.
+- PWA is manifest-only (no service worker) to keep previews safe.
