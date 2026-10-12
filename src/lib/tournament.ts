@@ -13,7 +13,7 @@ export type MatchEvent = Database["public"]["Tables"]["match_events"]["Row"];
 export const CATEGORIES: { value: Category; label: string }[] = [
   { value: "varonil", label: "Varonil" },
   { value: "femenil", label: "Femenil" },
-  { value: "mixto", label: "Mixto" },
+  { value: "mixto", label: "under 10 mixto" },
 ];
 
 export const EVENT_LABELS: Record<EventType, { label: string; short: string; points: number }> = {
