@@ -43,6 +43,7 @@ function MatchCapture() {
 
   const [side, setSide] = useState<"home" | "away">("home");
   const [jersey, setJersey] = useState("");
+  const [qty, setQty] = useState(1);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["events"] });
@@ -54,14 +55,15 @@ function MatchCapture() {
       if (!match) return;
       const n = Number(jersey);
       if (jersey === "" || !Number.isInteger(n) || n < 0 || n > 99) throw new Error("Ingresa un jersey válido (0–99)");
-      const { error } = await supabase.from("match_events").insert({
+      const row = {
         match_id: match.id,
         team_id: side === "home" ? match.home_team_id : match.away_team_id,
         jersey: n, event_type: type, created_by: user.id,
-      });
+      };
+      const { error } = await supabase.from("match_events").insert(Array.from({ length: qty }, () => row));
       if (error) throw error;
     },
-    onSuccess: (_d, type) => { toast.success(`${EVENT_LABELS[type].label} · #${jersey}`); setJersey(""); refresh(); },
+    onSuccess: (_d, type) => { toast.success(`${qty > 1 ? `${qty}× ` : ""}${EVENT_LABELS[type].label} · #${jersey}`); setJersey(""); setQty(1); refresh(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
   });
 
@@ -141,6 +143,23 @@ function MatchCapture() {
           placeholder="00"
           className="mt-1 w-full rounded-lg border border-input bg-background py-3 text-center font-display text-5xl tabular outline-none focus:border-primary"
         />
+
+        <label className="mt-4 block text-xs uppercase tracking-wider text-muted-foreground">Cantidad</label>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => setQty(q)}
+              className={cn(
+                "h-11 w-11 rounded-lg border-2 font-display text-xl",
+                qty === q ? "border-accent bg-accent text-accent-foreground" : "border-border text-muted-foreground",
+              )}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {EVENT_ORDER.map((t) => (
