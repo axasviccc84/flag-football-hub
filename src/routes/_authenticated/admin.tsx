@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { allTeamsQuery, categoriesQuery, GENDERS, useLiveTournament, type CategoryRow, type Gender, type Team } from "@/lib/tournament";
+import { allTeamsQuery, categoriesQuery, matchesQuery, GENDERS, GROUPS, PHASE_LABELS, STATUS_LABELS, formatDate, type MatchPhase, useLiveTournament, type CategoryRow, type Gender, type Team } from "@/lib/tournament";
 import { useScorerRole } from "@/lib/use-scorer";
 import { Button } from "@/components/ui/button";
 
@@ -40,6 +40,7 @@ function AdminPage() {
       <h1 className="text-4xl">Administración</h1>
       <CategoriesAdmin />
       <TeamsAdmin />
+      <MatchesAdmin />
     </section>
   );
 }
@@ -106,8 +107,9 @@ function TeamsAdmin() {
   const [name, setName] = useState("");
   const [short, setShort] = useState("");
   const [catId, setCatId] = useState("");
+  const [group, setGroup] = useState("");
   const [filter, setFilter] = useState("");
-  const reset = () => { setEditing(null); setName(""); setShort(""); };
+  const reset = () => { setEditing(null); setName(""); setShort(""); setGroup(""); };
   const effectiveCat = catId || cats.data?.[0]?.id || "";
 
   const save = useMutation({
@@ -116,7 +118,7 @@ function TeamsAdmin() {
       if (!name.trim()) throw new Error("Escribe el nombre del equipo");
       if (!/^[A-Z0-9]{3}$/.test(short)) throw new Error("La abreviatura debe tener 3 letras");
       if (!cat) throw new Error("Selecciona una categoría");
-      const row = { name: name.trim(), short_name: short, category_id: cat.id, category: cat.gender };
+      const row = { name: name.trim(), short_name: short, category_id: cat.id, category: cat.gender, group_name: group || null };
       const { error } = editing
         ? await supabase.from("teams").update(row).eq("id", editing.id)
         : await supabase.from("teams").insert(row);
@@ -140,11 +142,15 @@ function TeamsAdmin() {
   return (
     <div>
       <h2 className="mb-3 text-2xl text-primary">Equipos</h2>
-      <form className="mb-4 grid gap-2 rounded-xl border border-border bg-card p-4 sm:grid-cols-[1fr_6rem_12rem_auto_auto]" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+      <form className="mb-4 grid gap-2 rounded-xl border border-border bg-card p-4 sm:grid-cols-[1fr_6rem_12rem_8rem_auto_auto]" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
         <input className={field} placeholder="Nombre del equipo" value={name} onChange={(e) => setName(e.target.value)} />
         <input className={`${field} uppercase`} placeholder="ABC" maxLength={3} value={short} onChange={(e) => setShort(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} />
         <select className={field} value={effectiveCat} onChange={(e) => setCatId(e.target.value)}>
           {(cats.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <select className={field} value={group} onChange={(e) => setGroup(e.target.value)}>
+          <option value="">Sin grupo</option>
+          {GROUPS.map((g) => <option key={g} value={g}>Grupo {g}</option>)}
         </select>
         <Button type="submit" disabled={save.isPending}>{editing ? "Guardar" : "Agregar"}</Button>
         {editing && <Button type="button" variant="outline" onClick={reset}>Cancelar</Button>}
@@ -160,12 +166,114 @@ function TeamsAdmin() {
             <span className="flex items-center gap-2">
               <span className="rounded bg-secondary px-1.5 py-0.5 font-display">{t.short_name}</span>
               <span className="font-semibold">{t.name}</span>
-              <span className="text-muted-foreground">· {catName(t.category_id)}</span>
+              <span className="text-muted-foreground">· {catName(t.category_id)}{t.group_name ? ` · Grupo ${t.group_name}` : ""}</span>
             </span>
             <span className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => { setEditing(t); setName(t.name); setShort(t.short_name); setCatId(t.category_id ?? ""); }}>Editar</Button>
+              <Button size="sm" variant="outline" onClick={() => { setEditing(t); setName(t.name); setShort(t.short_name); setCatId(t.category_id ?? ""); setGroup(t.group_name ?? ""); }}>Editar</Button>
               <Button size="sm" variant="destructive" onClick={() => confirm(`¿Eliminar ${t.name}?`) && remove.mutate(t.id)}>Eliminar</Button>
             </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const PHASES: MatchPhase[] = ["grupos", "cruce", "semifinal", "final"];
+
+function MatchesAdmin() {
+  const qc = useQueryClient();
+  const cats = useQuery(categoriesQuery());
+  const teams = useQuery(allTeamsQuery());
+  const matches = useQuery(matchesQuery());
+  const [catId, setCatId] = useState("");
+  const [group, setGroup] = useState("");
+  const [phase, setPhase] = useState<MatchPhase>("grupos");
+  const [round, setRound] = useState(1);
+  const [slot, setSlot] = useState(1);
+  const [home, setHome] = useState("");
+  const [away, setAway] = useState("");
+  const [when, setWhen] = useState("");
+  const [fieldName, setFieldName] = useState("Campo 1");
+  const effectiveCat = catId || cats.data?.[0]?.id || "";
+  const catTeams = (teams.data ?? []).filter((t) => t.category_id === effectiveCat && (!group || phase !== "grupos" || t.group_name === group));
+  const teamName = (id: string) => teams.data?.find((t) => t.id === id)?.name ?? "—";
+
+  const onPhase = (p: MatchPhase) => { setPhase(p); setRound(p === "grupos" ? 1 : p === "cruce" ? 3 : p === "semifinal" ? 4 : 5); };
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const cat = cats.data?.find((c) => c.id === effectiveCat);
+      if (!cat) throw new Error("Selecciona una categoría");
+      if (!home || !away || home === away) throw new Error("Selecciona dos equipos distintos");
+      if (!when) throw new Error("Indica fecha y hora");
+      const { error } = await supabase.from("matches").insert({
+        category_id: cat.id, category: cat.gender, home_team_id: home, away_team_id: away,
+        scheduled_at: new Date(when).toISOString(), field: fieldName || "Campo 1",
+        round, phase, bracket_slot: slot, group_name: phase === "grupos" && group ? group : null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Partido programado"); setHome(""); setAway(""); qc.invalidateQueries({ queryKey: ["matches"] }); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("matches").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Partido eliminado"); qc.invalidateQueries({ queryKey: ["matches"] }); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+
+  const list = (matches.data ?? []).filter((m) => m.category_id === effectiveCat);
+
+  return (
+    <div>
+      <h2 className="mb-3 text-2xl text-primary">Partidos</h2>
+      <form className="mb-4 grid gap-2 rounded-xl border border-border bg-card p-4 sm:grid-cols-4" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+        <select className={field} value={effectiveCat} onChange={(e) => { setCatId(e.target.value); setHome(""); setAway(""); }}>
+          {(cats.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <select className={field} value={phase} onChange={(e) => onPhase(e.target.value as MatchPhase)}>
+          {PHASES.map((p) => <option key={p} value={p}>{PHASE_LABELS[p]}</option>)}
+        </select>
+        {phase === "grupos" ? (
+          <select className={field} value={round} onChange={(e) => setRound(Number(e.target.value))}>
+            <option value={1}>Jornada 1</option><option value={2}>Jornada 2</option>
+          </select>
+        ) : phase === "semifinal" ? (
+          <select className={field} value={slot} onChange={(e) => setSlot(Number(e.target.value))}>
+            <option value={1}>Semifinal 1</option><option value={2}>Semifinal 2</option>
+          </select>
+        ) : <div className="flex items-center px-1 text-sm text-muted-foreground">Jornada {round}</div>}
+        <select className={field} value={group} disabled={phase !== "grupos"} onChange={(e) => setGroup(e.target.value)}>
+          <option value="">Sin grupo</option>
+          {GROUPS.map((g) => <option key={g} value={g}>Grupo {g}</option>)}
+        </select>
+        <select className={field} value={home} onChange={(e) => setHome(e.target.value)}>
+          <option value="">Local…</option>
+          {catTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <select className={field} value={away} onChange={(e) => setAway(e.target.value)}>
+          <option value="">Visitante…</option>
+          {catTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <input type="datetime-local" className={field} value={when} onChange={(e) => setWhen(e.target.value)} />
+        <input className={field} placeholder="Campo" value={fieldName} onChange={(e) => setFieldName(e.target.value)} />
+        <Button type="submit" className="sm:col-span-4" disabled={save.isPending}>Programar partido</Button>
+      </form>
+      <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+        {list.length === 0 && <li className="p-4 text-sm text-muted-foreground">Sin partidos en esta categoría.</li>}
+        {list.map((m) => (
+          <li key={m.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            <span>
+              <span className="font-semibold">{teamName(m.home_team_id)} vs {teamName(m.away_team_id)}</span>
+              <span className="block text-xs text-muted-foreground">
+                {PHASE_LABELS[m.phase]}{m.phase === "grupos" ? ` · J${m.round}` : ""}{m.group_name ? ` · Grupo ${m.group_name}` : ""} · {formatDate(m.scheduled_at)} · {m.field} · {STATUS_LABELS[m.status]}
+              </span>
+            </span>
+            <Button size="sm" variant="destructive" onClick={() => confirm("¿Eliminar partido?") && remove.mutate(m.id)}>Eliminar</Button>
           </li>
         ))}
       </ul>
