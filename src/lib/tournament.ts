@@ -43,6 +43,15 @@ export const STATUS_LABELS: Record<MatchStatus, string> = {
   final: "Final",
 };
 
+export type MatchPhase = Database["public"]["Enums"]["match_phase"];
+export const PHASE_LABELS: Record<MatchPhase, string> = {
+  grupos: "Fase de Grupos",
+  cruce: "Cruce por Tabla General",
+  semifinal: "Semifinal",
+  final: "Final",
+};
+export const GROUPS = ["A", "B", "C", "D"];
+
 /** `cat` search param holds a category id; empty means "first category". */
 export function parseCategory(v: unknown): string {
   return typeof v === "string" ? v : "";

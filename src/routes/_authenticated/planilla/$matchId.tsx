@@ -43,6 +43,7 @@ function MatchCapture() {
 
   const [side, setSide] = useState<"home" | "away">("home");
   const [jersey, setJersey] = useState("");
+  const [qty, setQty] = useState(1);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["events"] });
@@ -54,14 +55,15 @@ function MatchCapture() {
       if (!match) return;
       const n = Number(jersey);
       if (jersey === "" || !Number.isInteger(n) || n < 0 || n > 99) throw new Error("Ingresa un jersey válido (0–99)");
-      const { error } = await supabase.from("match_events").insert({
+      const row = {
         match_id: match.id,
         team_id: side === "home" ? match.home_team_id : match.away_team_id,
         jersey: n, event_type: type, created_by: user.id,
-      });
+      };
+      const { error } = await supabase.from("match_events").insert(Array.from({ length: qty }, () => row));
       if (error) throw error;
     },
-    onSuccess: (_d, type) => { toast.success(`${EVENT_LABELS[type].label} · #${jersey}`); setJersey(""); refresh(); },
+    onSuccess: (_d, type) => { toast.success(`${qty > 1 ? `${qty}× ` : ""}${EVENT_LABELS[type].label} · #${jersey}`); setJersey(""); setQty(1); refresh(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
   });
 
