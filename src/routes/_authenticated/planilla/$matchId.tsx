@@ -144,6 +144,23 @@ function MatchCapture() {
           className="mt-1 w-full rounded-lg border border-input bg-background py-3 text-center font-display text-5xl tabular outline-none focus:border-primary"
         />
 
+        <label className="mt-4 block text-xs uppercase tracking-wider text-muted-foreground">Cantidad</label>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => setQty(q)}
+              className={cn(
+                "h-11 w-11 rounded-lg border-2 font-display text-xl",
+                qty === q ? "border-accent bg-accent text-accent-foreground" : "border-border text-muted-foreground",
+              )}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {EVENT_ORDER.map((t) => (
             <Button
