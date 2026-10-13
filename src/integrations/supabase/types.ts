@@ -90,13 +90,16 @@ export type Database = {
         Row: {
           away_score: number
           away_team_id: string
+          bracket_slot: number
           category: Database["public"]["Enums"]["category"]
           category_id: string | null
           created_at: string
           field: string
+          group_name: string | null
           home_score: number
           home_team_id: string
           id: string
+          phase: Database["public"]["Enums"]["match_phase"]
           round: number
           scheduled_at: string
           status: Database["public"]["Enums"]["match_status"]
@@ -104,13 +107,16 @@ export type Database = {
         Insert: {
           away_score?: number
           away_team_id: string
+          bracket_slot?: number
           category: Database["public"]["Enums"]["category"]
           category_id?: string | null
           created_at?: string
           field?: string
+          group_name?: string | null
           home_score?: number
           home_team_id: string
           id?: string
+          phase?: Database["public"]["Enums"]["match_phase"]
           round?: number
           scheduled_at: string
           status?: Database["public"]["Enums"]["match_status"]
@@ -118,13 +124,16 @@ export type Database = {
         Update: {
           away_score?: number
           away_team_id?: string
+          bracket_slot?: number
           category?: Database["public"]["Enums"]["category"]
           category_id?: string | null
           created_at?: string
           field?: string
+          group_name?: string | null
           home_score?: number
           home_team_id?: string
           id?: string
+          phase?: Database["public"]["Enums"]["match_phase"]
           round?: number
           scheduled_at?: string
           status?: Database["public"]["Enums"]["match_status"]
@@ -158,6 +167,7 @@ export type Database = {
           category: Database["public"]["Enums"]["category"]
           category_id: string | null
           created_at: string
+          group_name: string | null
           id: string
           name: string
           short_name: string
@@ -166,6 +176,7 @@ export type Database = {
           category: Database["public"]["Enums"]["category"]
           category_id?: string | null
           created_at?: string
+          group_name?: string | null
           id?: string
           name: string
           short_name: string
@@ -174,6 +185,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["category"]
           category_id?: string | null
           created_at?: string
+          group_name?: string | null
           id?: string
           name?: string
           short_name?: string
@@ -231,6 +243,7 @@ export type Database = {
         | "int"
         | "sack"
         | "pass_td"
+      match_phase: "grupos" | "cruce" | "semifinal" | "final"
       match_status: "programado" | "en_vivo" | "final"
     }
     CompositeTypes: {
@@ -362,6 +375,7 @@ export const Constants = {
       app_role: ["admin", "planillero"],
       category: ["varonil", "femenil", "mixto"],
       event_type: ["td", "conv1", "conv2", "safety", "int", "sack", "pass_td"],
+      match_phase: ["grupos", "cruce", "semifinal", "final"],
       match_status: ["programado", "en_vivo", "final"],
     },
   },

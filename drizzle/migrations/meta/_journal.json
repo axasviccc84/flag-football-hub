@@ -15,6 +15,13 @@
       "when": 1791841330475,
       "tag": "0001_categories_and_pass_td",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791903501229,
+      "tag": "0002_groups_phases",
+      "breakpoints": true
     }
   ]
 }
