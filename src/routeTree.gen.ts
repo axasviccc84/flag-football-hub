@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CalendarioRouteImport } from './routes/calendario'
 import { Route as LideresRouteImport } from './routes/lideres'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPlanillaIndexRouteImport } from './routes/_authenticated/planilla/index'
 import { Route as AuthenticatedPlanillaMatchIdRouteImport } from './routes/_authenticated/planilla/$matchId'
 
@@ -41,6 +42,11 @@ const LideresRoute = LideresRouteImport.update({
   path: '/lideres',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPlanillaIndexRoute =
   AuthenticatedPlanillaIndexRouteImport.update({
     id: '/planilla/',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/calendario': typeof CalendarioRoute
   '/lideres': typeof LideresRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/planilla/$matchId': typeof AuthenticatedPlanillaMatchIdRoute
   '/planilla/': typeof AuthenticatedPlanillaIndexRoute
 }
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/calendario': typeof CalendarioRoute
   '/lideres': typeof LideresRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/planilla/$matchId': typeof AuthenticatedPlanillaMatchIdRoute
   '/planilla': typeof AuthenticatedPlanillaIndexRoute
 }
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/calendario': typeof CalendarioRoute
   '/lideres': typeof LideresRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/planilla/$matchId': typeof AuthenticatedPlanillaMatchIdRoute
   '/_authenticated/planilla/': typeof AuthenticatedPlanillaIndexRoute
 }
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendario'
     | '/lideres'
+    | '/admin'
     | '/planilla/$matchId'
     | '/planilla/'
   fileRoutesByTo: FileRoutesByTo
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendario'
     | '/lideres'
+    | '/admin'
     | '/planilla/$matchId'
     | '/planilla'
   id:
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendario'
     | '/lideres'
+    | '/_authenticated/admin'
     | '/_authenticated/planilla/$matchId'
     | '/_authenticated/planilla/'
   fileRoutesById: FileRoutesById
@@ -153,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LideresRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/planilla/': {
       id: '/_authenticated/planilla/'
       path: '/planilla'
@@ -171,11 +190,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedPlanillaMatchIdRoute: typeof AuthenticatedPlanillaMatchIdRoute
   AuthenticatedPlanillaIndexRoute: typeof AuthenticatedPlanillaIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedPlanillaMatchIdRoute: AuthenticatedPlanillaMatchIdRoute,
   AuthenticatedPlanillaIndexRoute: AuthenticatedPlanillaIndexRoute,
 }
