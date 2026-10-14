@@ -88,8 +88,8 @@ export function FormatWizard() {
       const base = { category_id: cat.id, category: cat.gender, scheduled_at: when, round: maxRound + 1, phase: "semifinal" as const };
       const mk = (h: Team, a: Team, slot: number, bye?: Team) => ({ ...base, home_team_id: h.id, away_team_id: a.id, bracket_slot: slot, field: `Campo ${slot}`, bye_team_id: bye?.id ?? null });
       const rows = small
-        ? [mk(table[1], table[2], 1, table[0])]
-        : [mk(table[0], table[3], 1), mk(table[1], table[2], 2)];
+        ? [mk(table[1]!, table[2]!, 1, table[0]!)]
+        : [mk(table[0]!, table[3]!, 1), mk(table[1]!, table[2]!, 2)];
       const { error } = await supabase.from("matches").insert(rows);
       if (error) throw error;
     },

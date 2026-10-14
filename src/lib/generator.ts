@@ -65,7 +65,7 @@ export function splitGroups(teams: Team[], count: number): Map<string, Team[]> {
     const target = names
       .map((g) => ({ g, list: groups.get(g)! }))
       .sort((x, y) => x.list.filter((o) => sameState(o, t)).length - y.list.filter((o) => sameState(o, t)).length || x.list.length - y.list.length)[0];
-    target.list.push(t);
+    target!.list.push(t);
   }
   return groups;
 }
