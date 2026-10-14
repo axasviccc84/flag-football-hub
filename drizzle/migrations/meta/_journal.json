@@ -22,6 +22,13 @@
       "when": 1791903501229,
       "tag": "0002_groups_phases",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792012620885,
+      "tag": "0003_team_state_and_bracket_advance",
+      "breakpoints": true
     }
   ]
 }

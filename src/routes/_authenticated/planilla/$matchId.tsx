@@ -10,6 +10,7 @@ import {
 import { useScorerRole } from "@/lib/use-scorer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { StateBadge } from "@/components/StateBadge";
 
 export const Route = createFileRoute("/_authenticated/planilla/$matchId")({
   head: () => ({
@@ -128,7 +129,7 @@ function MatchCapture() {
                 side === s ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground",
               )}
             >
-              {(s === "home" ? home : away)?.short_name} <span className="text-sm font-sans">{(s === "home" ? home : away)?.name}</span>
+              {(s === "home" ? home : away)?.short_name} <span className="text-sm font-sans">{(s === "home" ? home : away)?.name}</span><StateBadge team={s === "home" ? home : away} />
             </button>
           ))}
         </div>
