@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { allTeamsQuery, categoriesQuery, matchesQuery, GENDERS, GROUPS, PHASE_LABELS, STATUS_LABELS, formatDate, type MatchPhase, useLiveTournament, type CategoryRow, type Gender, type Team } from "@/lib/tournament";
 import { useScorerRole } from "@/lib/use-scorer";
 import { Button } from "@/components/ui/button";
+import { FormatWizard } from "@/components/FormatWizard";
+import { stateTag } from "@/lib/generator";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -40,6 +42,7 @@ function AdminPage() {
       <h1 className="text-4xl">Administración</h1>
       <CategoriesAdmin />
       <TeamsAdmin />
+      <FormatWizard />
       <MatchesAdmin />
     </section>
   );
@@ -108,8 +111,9 @@ function TeamsAdmin() {
   const [short, setShort] = useState("");
   const [catId, setCatId] = useState("");
   const [group, setGroup] = useState("");
+  const [origin, setOrigin] = useState("");
   const [filter, setFilter] = useState("");
-  const reset = () => { setEditing(null); setName(""); setShort(""); setGroup(""); };
+  const reset = () => { setEditing(null); setName(""); setShort(""); setGroup(""); setOrigin(""); };
   const effectiveCat = catId || cats.data?.[0]?.id || "";
 
   const save = useMutation({
@@ -118,7 +122,7 @@ function TeamsAdmin() {
       if (!name.trim()) throw new Error("Escribe el nombre del equipo");
       if (!/^[A-Z0-9]{3}$/.test(short)) throw new Error("La abreviatura debe tener 3 letras");
       if (!cat) throw new Error("Selecciona una categoría");
-      const row = { name: name.trim(), short_name: short, category_id: cat.id, category: cat.gender, group_name: group || null };
+      const row = { name: name.trim(), short_name: short, category_id: cat.id, category: cat.gender, group_name: group || null, state: origin.trim() || null };
       const { error } = editing
         ? await supabase.from("teams").update(row).eq("id", editing.id)
         : await supabase.from("teams").insert(row);
@@ -142,9 +146,10 @@ function TeamsAdmin() {
   return (
     <div>
       <h2 className="mb-3 text-2xl text-primary">Equipos</h2>
-      <form className="mb-4 grid gap-2 rounded-xl border border-border bg-card p-4 sm:grid-cols-[1fr_6rem_12rem_8rem_auto_auto]" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+      <form className="mb-4 grid gap-2 rounded-xl border border-border bg-card p-4 sm:grid-cols-[1fr_6rem_9rem_12rem_8rem_auto_auto]" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
         <input className={field} placeholder="Nombre del equipo" value={name} onChange={(e) => setName(e.target.value)} />
         <input className={`${field} uppercase`} placeholder="ABC" maxLength={3} value={short} onChange={(e) => setShort(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} />
+        <input className={field} placeholder="Estado (QRO)" value={origin} onChange={(e) => setOrigin(e.target.value)} />
         <select className={field} value={effectiveCat} onChange={(e) => setCatId(e.target.value)}>
           {(cats.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -165,11 +170,11 @@ function TeamsAdmin() {
           <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
             <span className="flex items-center gap-2">
               <span className="rounded bg-secondary px-1.5 py-0.5 font-display">{t.short_name}</span>
-              <span className="font-semibold">{t.name}</span>
+              <span className="font-semibold">{t.name}</span>{t.state && <span className="rounded border border-accent px-1 text-xs text-accent">{stateTag(t)}</span>}
               <span className="text-muted-foreground">· {catName(t.category_id)}{t.group_name ? ` · Grupo ${t.group_name}` : ""}</span>
             </span>
             <span className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => { setEditing(t); setName(t.name); setShort(t.short_name); setCatId(t.category_id ?? ""); setGroup(t.group_name ?? ""); }}>Editar</Button>
+              <Button size="sm" variant="outline" onClick={() => { setEditing(t); setName(t.name); setShort(t.short_name); setCatId(t.category_id ?? ""); setGroup(t.group_name ?? ""); setOrigin(t.state ?? ""); }}>Editar</Button>
               <Button size="sm" variant="destructive" onClick={() => confirm(`¿Eliminar ${t.name}?`) && remove.mutate(t.id)}>Eliminar</Button>
             </span>
           </li>
@@ -197,7 +202,7 @@ function MatchesAdmin() {
   const [fieldName, setFieldName] = useState("Campo 1");
   const effectiveCat = catId || cats.data?.[0]?.id || "";
   const catTeams = (teams.data ?? []).filter((t) => t.category_id === effectiveCat && (!group || phase !== "grupos" || t.group_name === group));
-  const teamName = (id: string) => teams.data?.find((t) => t.id === id)?.name ?? "—";
+  const teamName = (id: string) => { const t = teams.data?.find((x) => x.id === id); return t ? `${t.name}${t.state ? ` (${stateTag(t)})` : ""}` : "—"; };
 
   const onPhase = (p: MatchPhase) => { setPhase(p); setRound(p === "grupos" ? 1 : p === "cruce" ? 3 : p === "semifinal" ? 4 : 5); };
 

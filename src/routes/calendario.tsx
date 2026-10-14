@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { matchesQuery, parseCategory, teamsQuery, useLiveTournament, useCategory, PHASE_LABELS, type Match, type Team } from "@/lib/tournament";
 import { MatchCard } from "@/components/MatchCard";
 import { cn } from "@/lib/utils";
+import { StateBadge } from "@/components/StateBadge";
 
 export const Route = createFileRoute("/calendario")({
   validateSearch: (s: Record<string, unknown>) => ({ cat: parseCategory(s["cat"]) }),
@@ -77,7 +78,7 @@ function BracketBox({ match, teams, label }: { match: Match | undefined; teams: 
       <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       {rows.map((r, i) => (
         <div key={i} className="flex items-center justify-between py-1">
-          <span className={cn("font-semibold", played && r.s > r.o && "text-accent", !r.t && "text-muted-foreground")}>{r.t?.name ?? "Por definir"}</span>
+          <span className={cn("font-semibold", played && r.s > r.o && "text-accent", !r.t && "text-muted-foreground")}>{r.t?.name ?? "Por definir"}<StateBadge team={r.t} /></span>
           <span className="font-display text-2xl tabular">{played ? r.s : "-"}</span>
         </div>
       ))}
