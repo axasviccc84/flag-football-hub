@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")({
       { title: "Tabla de Posiciones · Torneo Flag Football IFAF" },
       { name: "description", content: "Posiciones en vivo del torneo de Flag Football: Varonil, Femenil y Mixto con reglas IFAF 2023." },
       { property: "og:title", content: "Tabla de Posiciones · Torneo Flag Football" },
-      { property: "og:description", content: "JJ, JG, JP, PF, PC, DIF y PTS actualizados en tiempo real." },
+      { property: "og:description", content: "PJ, PG, PE, PP, PF, PC, DIF y PTS actualizados en tiempo real." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -37,7 +37,7 @@ function Standings() {
             <tr>
               <th className="px-3 py-3 text-left">#</th>
               <th className="px-3 py-3 text-left">Equipo</th>
-              {["JJ", "JG", "JP", "PF", "PC", "DIF"].map((h) => (
+              {["PJ", "PG", "PE", "PP", "PF", "PC", "DIF"].map((h) => (
                 <th key={h} className="px-2 py-3 text-center">{h}</th>
               ))}
               <th className="px-3 py-3 text-center text-primary">PTS</th>
@@ -45,7 +45,7 @@ function Standings() {
           </thead>
           <tbody>
             {teams.isLoading && (
-              <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Cargando…</td></tr>
+              <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Cargando…</td></tr>
             )}
             {rows.map((r, i) => (
               <tr key={r.team.id} className="border-t border-border">
@@ -56,6 +56,7 @@ function Standings() {
                 </td>
                 <td className="px-2 py-3 text-center">{r.jj}</td>
                 <td className="px-2 py-3 text-center">{r.jg}</td>
+                <td className="px-2 py-3 text-center">{r.je}</td>
                 <td className="px-2 py-3 text-center">{r.jp}</td>
                 <td className="px-2 py-3 text-center">{r.pf}</td>
                 <td className="px-2 py-3 text-center">{r.pc}</td>
