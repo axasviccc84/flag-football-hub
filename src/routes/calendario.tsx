@@ -67,7 +67,7 @@ function Calendar() {
   );
 }
 
-function BracketBox({ match, teams, label }: { match?: Match; teams: Map<string, Team>; label: string }) {
+function BracketBox({ match, teams, label }: { match: Match | undefined; teams: Map<string, Team>; label: string }) {
   const played = match && match.status !== "programado";
   const rows = match
     ? [{ t: teams.get(match.home_team_id), s: match.home_score, o: match.away_score }, { t: teams.get(match.away_team_id), s: match.away_score, o: match.home_score }]
