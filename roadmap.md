@@ -1,0 +1,1 @@
+- Torneo: asistente de formato, estados, siembra y avance automático a Final
