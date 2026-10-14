@@ -91,6 +91,7 @@ export type Database = {
           away_score: number
           away_team_id: string
           bracket_slot: number
+          bye_team_id: string | null
           category: Database["public"]["Enums"]["category"]
           category_id: string | null
           created_at: string
@@ -108,6 +109,7 @@ export type Database = {
           away_score?: number
           away_team_id: string
           bracket_slot?: number
+          bye_team_id?: string | null
           category: Database["public"]["Enums"]["category"]
           category_id?: string | null
           created_at?: string
@@ -125,6 +127,7 @@ export type Database = {
           away_score?: number
           away_team_id?: string
           bracket_slot?: number
+          bye_team_id?: string | null
           category?: Database["public"]["Enums"]["category"]
           category_id?: string | null
           created_at?: string
@@ -142,6 +145,13 @@ export type Database = {
           {
             foreignKeyName: "matches_away_team_id_fkey"
             columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_bye_team_id_fkey"
+            columns: ["bye_team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
@@ -171,6 +181,7 @@ export type Database = {
           id: string
           name: string
           short_name: string
+          state: string | null
         }
         Insert: {
           category: Database["public"]["Enums"]["category"]
@@ -180,6 +191,7 @@ export type Database = {
           id?: string
           name: string
           short_name: string
+          state?: string | null
         }
         Update: {
           category?: Database["public"]["Enums"]["category"]
@@ -189,6 +201,7 @@ export type Database = {
           id?: string
           name?: string
           short_name?: string
+          state?: string | null
         }
         Relationships: [
           {
