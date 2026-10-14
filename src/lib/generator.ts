@@ -1,12 +1,12 @@
 import type { Team } from "@/lib/tournament";
 
-export type Pair = { home: Team; away: Team; round: number; group?: string | null };
+export type Pair = { home: Team; away: Team; round: number; group?: string | null | undefined };
 
 const sameState = (a: Team, b: Team) => !!a.state && !!b.state && a.state.trim().toLowerCase() === b.state.trim().toLowerCase();
 const key = (a: Team, b: Team) => [a.id, b.id].sort().join("|");
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j]!, a[i]!]; }
   return a;
 }
 
@@ -19,7 +19,7 @@ export function roundRobin(teams: Team[], group?: string | null): Pair[] {
   for (let r = 0; r < n - 1; r++) {
     for (let i = 0; i < n / 2; i++) {
       const a = list[i], b = list[n - 1 - i];
-      if (a && b) out.push({ home: r % 2 ? b : a, away: r % 2 ? a : b, round: r + 1, group });
+      if (a && b) out.push({ home: r % 2 ? b : a, away: r % 2 ? a : b, round: r + 1, group: group ?? null });
     }
     list.splice(1, 0, list.pop()!);
   }
@@ -39,7 +39,7 @@ export function rankingRounds(teams: Team[], rounds: number): Pair[] {
         let idx = pool.findIndex((b) => !sameState(a, b) && !played.has(key(a, b)));
         if (idx < 0) { idx = pool.findIndex((b) => !played.has(key(a, b))); cost += 10; }
         if (idx < 0) { idx = 0; cost += 100; }
-        const b = pool.splice(idx, 1)[0];
+        const b = pool.splice(idx, 1)[0]!;
         if (sameState(a, b)) cost += 10;
         pairs.push({ home: a, away: b, round: r });
       }
