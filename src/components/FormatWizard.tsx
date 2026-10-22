@@ -97,6 +97,29 @@ export function FormatWizard() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
   });
 
+  const ranking = useMutation({
+    mutationFn: async () => {
+      if (!cat) throw new Error("Selecciona una categoría");
+      if (n < 6 || n % 2) throw new Error("La Jornada de Ranqueo necesita un número par de equipos (mínimo 6)");
+      if (catMatches.some((m) => m.phase === "cruce")) throw new Error("Ya existe la Jornada 3 en esta categoría.");
+      const regular = catMatches.filter((m) => m.phase === "grupos");
+      if (regular.length === 0) throw new Error("Primero juega las Jornadas 1 y 2.");
+      const table = computeStandings(catTeams, regular).map((r) => r.team);
+      const last = regular.reduce((mx, m) => Math.max(mx, new Date(m.scheduled_at).getTime()), 0);
+      const t0 = start ? new Date(start).getTime() : last + interval * 60000;
+      const rows = Array.from({ length: n / 2 }, (_, i) => ({
+        category_id: cat.id, category: cat.gender, home_team_id: table[i]!.id, away_team_id: table[n - 1 - i]!.id,
+        scheduled_at: new Date(t0 + Math.floor(i / fields) * interval * 60000).toISOString(),
+        field: `Campo ${(i % fields) + 1}`, round: 3, phase: "cruce" as const, bracket_slot: i + 1, group_name: null, status: "programado" as const,
+      }));
+      const { error } = await supabase.from("matches").insert(rows);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (c) => { toast.success(`Jornada 3 generada: ${c} partidos (1.º vs ${n}.º, 2.º vs ${n - 1}.º…)`); refresh(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
+  });
+
   return (
     <div>
       <h2 className="mb-3 text-2xl text-primary">Asistente de formato</h2>
@@ -147,7 +170,8 @@ export function FormatWizard() {
 
         <div className="flex flex-wrap gap-2">
           <Button disabled={n < 3 || generate.isPending} onClick={() => generate.mutate()}>Generar Partidos Automáticamente</Button>
-          <Button variant="outline" disabled={n < 3 || seed.isPending} onClick={() => seed.mutate()}>Sembrar Playoffs según Tabla General</Button>
+          <Button variant="outline" disabled={n < 3 || seed.isPending} onClick={() => seed.mutate()}>Sembrar Playoffs Top-4</Button>
+          <Button variant="secondary" disabled={n < 6 || ranking.isPending} onClick={() => ranking.mutate()}>Generar Jornada de Ranqueo (Jornada 3)</Button>
         </div>
         <p className="text-xs text-muted-foreground">Al sembrar se usa la fecha de “Inicio” (o el día siguiente al último partido). La Gran Final se crea sola cuando terminan las semifinales.</p>
       </div>
