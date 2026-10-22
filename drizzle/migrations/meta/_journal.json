@@ -29,6 +29,13 @@
       "when": 1792012620885,
       "tag": "0003_team_state_and_bracket_advance",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792691935678,
+      "tag": "0004_advance_bracket_on_insert",
+      "breakpoints": true
     }
   ]
 }
