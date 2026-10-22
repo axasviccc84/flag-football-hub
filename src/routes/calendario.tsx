@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { matchesQuery, parseCategory, teamsQuery, useLiveTournament, useCategory, PHASE_LABELS, type Match, type Team } from "@/lib/tournament";
+import { computeStandings, matchesQuery, parseCategory, teamsQuery, useLiveTournament, useCategory, PHASE_LABELS, type Match, type Team } from "@/lib/tournament";
 import { MatchCard } from "@/components/MatchCard";
 import { cn } from "@/lib/utils";
 import { StateBadge } from "@/components/StateBadge";
@@ -68,17 +68,17 @@ function Calendar() {
   );
 }
 
-function BracketBox({ match, teams, label }: { match: Match | undefined; teams: Map<string, Team>; label: string }) {
+function BracketBox({ match, teams, label, seeds }: { match: Match | undefined; teams: Map<string, Team>; label: string; seeds?: [Team | undefined, Team | undefined] | undefined }) {
   const played = match && match.status !== "programado";
   const rows = match
     ? [{ t: teams.get(match.home_team_id), s: match.home_score, o: match.away_score }, { t: teams.get(match.away_team_id), s: match.away_score, o: match.home_score }]
-    : [{ t: undefined, s: 0, o: 0 }, { t: undefined, s: 0, o: 0 }];
+    : [{ t: seeds?.[0], s: 0, o: 0 }, { t: seeds?.[1], s: 0, o: 0 }];
   return (
     <div className="w-full rounded-xl border border-border bg-card p-3">
       <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       {rows.map((r, i) => (
         <div key={i} className="flex items-center justify-between py-1">
-          <span className={cn("font-semibold", played && r.s > r.o && "text-accent", !r.t && "text-muted-foreground")}>{r.t?.name ?? "Por definir"}<StateBadge team={r.t} /></span>
+          <span className={cn("flex items-center gap-2 font-semibold", played && r.s > r.o && "text-accent", !r.t && "text-muted-foreground")}>{r.t && <span className="rounded bg-secondary px-1.5 py-0.5 font-display text-sm">{r.t.short_name}</span>}{r.t?.name ?? "Por definir"}<StateBadge team={r.t} /></span>
           <span className="font-display text-2xl tabular">{played ? r.s : "-"}</span>
         </div>
       ))}
@@ -91,11 +91,15 @@ function Bracket({ matches, teams }: { matches: Match[]; teams: Map<string, Team
   const final = matches.find((m) => m.phase === "final");
   const s1 = semis.find((m) => m.bracket_slot === 1) ?? semis[0];
   const s2 = semis.find((m) => m.bracket_slot === 2 && m !== s1) ?? semis.find((m) => m !== s1);
+  // Until semis are seeded, show the current Top-4 from the general table.
+  const regular = matches.filter((m) => m.phase === "grupos" || m.phase === "cruce");
+  const top = computeStandings([...teams.values()], regular).map((r) => r.team);
+  const projected = !s1 && regular.some((m) => m.status === "final");
   return (
     <div className="grid items-center gap-6 md:grid-cols-[1fr_auto_1fr]">
       <div className="space-y-6">
-        <BracketBox match={s1} teams={teams} label="Semifinal 1" />
-        <BracketBox match={s2} teams={teams} label="Semifinal 2" />
+        <BracketBox match={s1} teams={teams} label={projected ? "Semifinal 1 · 1.º vs 4.º (proyección)" : "Semifinal 1"} seeds={projected ? [top[0], top[3]] : undefined} />
+        <BracketBox match={s2} teams={teams} label={projected ? "Semifinal 2 · 2.º vs 3.º (proyección)" : "Semifinal 2"} seeds={projected ? [top[1], top[2]] : undefined} />
       </div>
       <div className="hidden font-display text-4xl text-primary md:block">→</div>
       <BracketBox match={final} teams={teams} label="🏆 Final" />
