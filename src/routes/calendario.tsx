@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { computeStandings, matchesQuery, parseCategory, teamsQuery, useLiveTournament, useCategory, PHASE_LABELS, type Match, type Team } from "@/lib/tournament";
+import { computeStandings, matchesQuery, parseCategory, teamsQuery, useLiveTournament, useCategory, PHASE_LABELS, type Gender, type Match, type Team } from "@/lib/tournament";
 import { MatchCard } from "@/components/MatchCard";
 import { cn } from "@/lib/utils";
 import { StateBadge } from "@/components/StateBadge";
-import { BracketEditDialog } from "@/components/BracketEditDialog";
+import { BracketEditDialog, type BracketTarget } from "@/components/BracketEditDialog";
 import { useMyRoles } from "@/lib/use-session-roles";
 
 export const Route = createFileRoute("/calendario")({
@@ -64,7 +64,7 @@ function Calendar() {
           ))}
         </>
       ) : (
-        <Bracket matches={all} teams={teamMap} />
+        <Bracket matches={all} teams={teamMap} categoryId={category.id} gender={category.current?.gender} />
       )}
     </section>
   );
@@ -92,7 +92,7 @@ function BracketBox({ match, teams, label, seeds, onClick }: { onClick?: (() => 
   );
 }
 
-function Bracket({ matches, teams }: { matches: Match[]; teams: Map<string, Team> }) {
+function Bracket({ matches, teams, categoryId, gender }: { matches: Match[]; teams: Map<string, Team>; categoryId: string; gender: Gender | undefined }) {
   const semis = matches.filter((m) => m.phase === "semifinal");
   const final = matches.find((m) => m.phase === "final");
   const s1 = semis.find((m) => m.bracket_slot === 1) ?? semis[0];
@@ -101,18 +101,34 @@ function Bracket({ matches, teams }: { matches: Match[]; teams: Map<string, Team
   const regular = matches.filter((m) => m.phase === "grupos" || m.phase === "cruce");
   const top = computeStandings([...teams.values()], regular).map((r) => r.team);
   const roles = useMyRoles();
-  const [edit, setEdit] = useState<{ m: Match; label: string } | null>(null);
-  const open = (m: Match | undefined, label: string) => (roles.canScore && m ? () => setEdit({ m, label }) : undefined);
-  const projected = !s1 && regular.some((m) => m.status === "final");
+  const [edit, setEdit] = useState<BracketTarget | null>(null);
+  const winner = (m: Match | undefined) => (m && m.status === "final" && m.home_score !== m.away_score ? (m.home_score > m.away_score ? m.home_team_id : m.away_team_id) : undefined);
+  const w1 = winner(s1); const w2 = winner(s2);
+  const seed1: [Team | undefined, Team | undefined] = [top[0], top[3]];
+  const seed2: [Team | undefined, Team | undefined] = [top[1], top[2]];
+  const seedF: [Team | undefined, Team | undefined] = [w1 ? teams.get(w1) : undefined, w2 ? teams.get(w2) : undefined];
+  const open = (t: BracketTarget) => (roles.canScore ? () => setEdit(t) : undefined);
+  const champion = final && winner(final) ? teams.get(winner(final)!) : undefined;
   return (
-    <div className="grid items-center gap-6 md:grid-cols-[1fr_auto_1fr]">
-      <div className="space-y-6">
-        <BracketBox match={s1} teams={teams} label={projected ? "Semifinal 1 · 1.º vs 4.º (proyección)" : "Semifinal 1"} seeds={projected ? [top[0], top[3]] : undefined} onClick={open(s1, "Semifinal 1")} />
-        <BracketBox match={s2} teams={teams} label={projected ? "Semifinal 2 · 2.º vs 3.º (proyección)" : "Semifinal 2"} seeds={projected ? [top[1], top[2]] : undefined} onClick={open(s2, "Semifinal 2")} />
+    <div className="space-y-6">
+      {champion && (
+        <div className="rounded-xl border-2 border-accent bg-card p-4 text-center">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Campeón del Torneo</div>
+          <div className="font-display text-4xl text-accent">🏆 {champion.name}</div>
+        </div>
+      )}
+      <div className="grid items-center gap-6 md:grid-cols-[1fr_auto_1fr]">
+        <div className="space-y-6">
+          <BracketBox match={s1} teams={teams} label={s1 ? "Semifinal 1" : "Semifinal 1 · 1.º vs 4.º"} seeds={seed1}
+            onClick={open({ label: "Semifinal 1", phase: "semifinal", slot: 1, match: s1, home: seed1[0]?.id, away: seed1[1]?.id })} />
+          <BracketBox match={s2} teams={teams} label={s2 ? "Semifinal 2" : "Semifinal 2 · 2.º vs 3.º"} seeds={seed2}
+            onClick={open({ label: "Semifinal 2", phase: "semifinal", slot: 2, match: s2, home: seed2[0]?.id, away: seed2[1]?.id })} />
+        </div>
+        <div className="hidden font-display text-4xl text-primary md:block">→</div>
+        <BracketBox match={final} teams={teams} label="🏆 Final" seeds={seedF}
+          onClick={open({ label: "Gran Final", phase: "final", slot: 1, match: final, home: seedF[0]?.id, away: seedF[1]?.id })} />
       </div>
-      <div className="hidden font-display text-4xl text-primary md:block">→</div>
-      <BracketBox match={final} teams={teams} label="🏆 Final" onClick={open(final, "Gran Final")} />
-      <BracketEditDialog match={edit?.m ?? null} label={edit?.label ?? ""} teams={[...teams.values()]} isAdmin={roles.isAdmin} onClose={() => setEdit(null)} />
+      <BracketEditDialog target={edit} teams={[...teams.values()]} isAdmin={roles.isAdmin} categoryId={categoryId} gender={gender} onClose={() => setEdit(null)} />
     </div>
   );
 }
