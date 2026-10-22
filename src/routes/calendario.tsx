@@ -5,6 +5,8 @@ import { computeStandings, matchesQuery, parseCategory, teamsQuery, useLiveTourn
 import { MatchCard } from "@/components/MatchCard";
 import { cn } from "@/lib/utils";
 import { StateBadge } from "@/components/StateBadge";
+import { BracketEditDialog } from "@/components/BracketEditDialog";
+import { useMyRoles } from "@/lib/use-session-roles";
 
 export const Route = createFileRoute("/calendario")({
   validateSearch: (s: Record<string, unknown>) => ({ cat: parseCategory(s["cat"]) }),
@@ -68,13 +70,17 @@ function Calendar() {
   );
 }
 
-function BracketBox({ match, teams, label, seeds }: { match: Match | undefined; teams: Map<string, Team>; label: string; seeds?: [Team | undefined, Team | undefined] | undefined }) {
+function BracketBox({ match, teams, label, seeds, onClick }: { onClick?: (() => void) | undefined; match: Match | undefined; teams: Map<string, Team>; label: string; seeds?: [Team | undefined, Team | undefined] | undefined }) {
   const played = match && match.status !== "programado";
   const rows = match
     ? [{ t: teams.get(match.home_team_id), s: match.home_score, o: match.away_score }, { t: teams.get(match.away_team_id), s: match.away_score, o: match.home_score }]
     : [{ t: seeds?.[0], s: 0, o: 0 }, { t: seeds?.[1], s: 0, o: 0 }];
   return (
-    <div className="w-full rounded-xl border border-border bg-card p-3">
+    <div
+      className={cn("w-full rounded-xl border border-border bg-card p-3", onClick && "cursor-pointer transition-colors hover:border-primary")}
+      onClick={onClick} role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => onClick && (e.key === "Enter" || e.key === " ") && onClick()}
+    >
       <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       {rows.map((r, i) => (
         <div key={i} className="flex items-center justify-between py-1">
@@ -94,15 +100,19 @@ function Bracket({ matches, teams }: { matches: Match[]; teams: Map<string, Team
   // Until semis are seeded, show the current Top-4 from the general table.
   const regular = matches.filter((m) => m.phase === "grupos" || m.phase === "cruce");
   const top = computeStandings([...teams.values()], regular).map((r) => r.team);
+  const roles = useMyRoles();
+  const [edit, setEdit] = useState<{ m: Match; label: string } | null>(null);
+  const open = (m: Match | undefined, label: string) => (roles.canScore && m ? () => setEdit({ m, label }) : undefined);
   const projected = !s1 && regular.some((m) => m.status === "final");
   return (
     <div className="grid items-center gap-6 md:grid-cols-[1fr_auto_1fr]">
       <div className="space-y-6">
-        <BracketBox match={s1} teams={teams} label={projected ? "Semifinal 1 · 1.º vs 4.º (proyección)" : "Semifinal 1"} seeds={projected ? [top[0], top[3]] : undefined} />
-        <BracketBox match={s2} teams={teams} label={projected ? "Semifinal 2 · 2.º vs 3.º (proyección)" : "Semifinal 2"} seeds={projected ? [top[1], top[2]] : undefined} />
+        <BracketBox match={s1} teams={teams} label={projected ? "Semifinal 1 · 1.º vs 4.º (proyección)" : "Semifinal 1"} seeds={projected ? [top[0], top[3]] : undefined} onClick={open(s1, "Semifinal 1")} />
+        <BracketBox match={s2} teams={teams} label={projected ? "Semifinal 2 · 2.º vs 3.º (proyección)" : "Semifinal 2"} seeds={projected ? [top[1], top[2]] : undefined} onClick={open(s2, "Semifinal 2")} />
       </div>
       <div className="hidden font-display text-4xl text-primary md:block">→</div>
-      <BracketBox match={final} teams={teams} label="🏆 Final" />
+      <BracketBox match={final} teams={teams} label="🏆 Final" onClick={open(final, "Gran Final")} />
+      <BracketEditDialog match={edit?.m ?? null} label={edit?.label ?? ""} teams={[...teams.values()]} isAdmin={roles.isAdmin} onClose={() => setEdit(null)} />
     </div>
   );
 }
