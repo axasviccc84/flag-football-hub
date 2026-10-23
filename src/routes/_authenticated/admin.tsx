@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { allTeamsQuery, categoriesQuery, matchesQuery, GENDERS, GROUPS, PHASE_LABELS, STATUS_LABELS, formatDate, type MatchPhase, useLiveTournament, type CategoryRow, type Gender, type Team } from "@/lib/tournament";
+import { settingsQuery, DEFAULT_COLOR, DEFAULT_NAME } from "@/lib/branding";
 import { useScorerRole } from "@/lib/use-scorer";
+import { useMyRoles } from "@/lib/use-session-roles";
 import { Button } from "@/components/ui/button";
 import { FormatWizard } from "@/components/FormatWizard";
+import { TeamLogo } from "@/components/TeamLogo";
 import { stateTag } from "@/lib/generator";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -34,17 +37,62 @@ function AdminPage() {
   const { user } = Route.useRouteContext();
   useLiveTournament();
   const scorer = useScorerRole(user.id);
+  const roles = useMyRoles();
   if (scorer.isLoading) return <p className="text-muted-foreground">Cargando…</p>;
   if (!scorer.data)
     return <div className="rounded-xl border border-destructive bg-card p-4 text-sm">Tu cuenta no tiene permiso de administrador o planillero.</div>;
   return (
     <section className="space-y-10">
       <h1 className="text-4xl">Administración</h1>
+      {roles.isAdmin && <BrandingAdmin />}
       <CategoriesAdmin />
       <TeamsAdmin />
       <FormatWizard />
       <MatchesAdmin />
     </section>
+  );
+}
+
+function BrandingAdmin() {
+  const qc = useQueryClient();
+  const settings = useQuery(settingsQuery());
+  const [name, setName] = useState<string | null>(null);
+  const [color, setColor] = useState<string | null>(null);
+  const nameVal = name ?? settings.data?.tournament_name ?? DEFAULT_NAME;
+  const colorVal = color ?? settings.data?.primary_color ?? DEFAULT_COLOR;
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!nameVal.trim()) throw new Error("Escribe el nombre del torneo");
+      if (!/^#[0-9a-fA-F]{6}$/.test(colorVal)) throw new Error("El color debe ser hex, ej. #f97316");
+      const { error } = await supabase.from("settings").update({ tournament_name: nameVal.trim(), primary_color: colorVal, updated_at: new Date().toISOString() }).eq("id", true);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Marca actualizada"); setName(null); setColor(null); qc.invalidateQueries({ queryKey: ["settings"] }); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+
+  return (
+    <div>
+      <h2 className="mb-3 text-2xl text-primary">Marca del Torneo</h2>
+      <form className="grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-[1fr_auto_auto]" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+        <label className="block">
+          <span className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Nombre del torneo</span>
+          <input className={field} placeholder="Ej. FLAG TORNEO 2026" value={nameVal} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Color de acento</span>
+          <span className="flex items-center gap-2">
+            <input type="color" value={colorVal} onChange={(e) => setColor(e.target.value)} className="h-10 w-12 cursor-pointer rounded-md border border-input bg-background" />
+            <input className={`${field} w-28 font-mono`} value={colorVal} onChange={(e) => setColor(e.target.value)} />
+          </span>
+        </label>
+        <span className="flex items-end">
+          <Button type="submit" disabled={save.isPending}>Guardar marca</Button>
+        </span>
+      </form>
+      <p className="mt-2 text-xs text-muted-foreground">El nombre aparece en la barra superior y el color se aplica a botones, pestañas activas y destacados del bracket.</p>
+    </div>
   );
 }
 
@@ -112,9 +160,26 @@ function TeamsAdmin() {
   const [catId, setCatId] = useState("");
   const [group, setGroup] = useState("");
   const [origin, setOrigin] = useState("");
+  const [logo, setLogo] = useState("");
   const [filter, setFilter] = useState("");
-  const reset = () => { setEditing(null); setName(""); setShort(""); setGroup(""); setOrigin(""); };
+  const fileRef = useRef<HTMLInputElement>(null);
+  const reset = () => { setEditing(null); setName(""); setShort(""); setGroup(""); setOrigin(""); setLogo(""); };
   const effectiveCat = catId || cats.data?.[0]?.id || "";
+
+  const uploadLogo = useMutation({
+    mutationFn: async (file: File) => {
+      if (file.size > 2 * 1024 * 1024) throw new Error("El logo no debe pesar más de 2 MB");
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("logos").upload(path, file, { contentType: file.type });
+      if (error) throw error;
+      const { data, error: signErr } = await supabase.storage.from("logos").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signErr) throw signErr;
+      return data.signedUrl;
+    },
+    onSuccess: (url) => { setLogo(url); toast.success("Logo subido"); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
 
   const save = useMutation({
     mutationFn: async () => {
@@ -122,7 +187,7 @@ function TeamsAdmin() {
       if (!name.trim()) throw new Error("Escribe el nombre del equipo");
       if (!/^[A-Z0-9]{3}$/.test(short)) throw new Error("La abreviatura debe tener 3 letras");
       if (!cat) throw new Error("Selecciona una categoría");
-      const row = { name: name.trim(), short_name: short, category_id: cat.id, category: cat.gender, group_name: group || null, state: origin.trim() || null };
+      const row = { name: name.trim(), short_name: short, category_id: cat.id, category: cat.gender, group_name: group || null, state: origin.trim() || null, logo_url: logo.trim() || null };
       const { error } = editing
         ? await supabase.from("teams").update(row).eq("id", editing.id)
         : await supabase.from("teams").insert(row);
@@ -159,6 +224,15 @@ function TeamsAdmin() {
         </select>
         <Button type="submit" disabled={save.isPending}>{editing ? "Guardar" : "Agregar"}</Button>
         {editing && <Button type="button" variant="outline" onClick={reset}>Cancelar</Button>}
+        <div className="flex items-center gap-2 sm:col-span-7">
+          {logo ? <img src={logo} alt="Logo" className="h-10 w-10 rounded-full border border-border object-contain" /> : <span className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-border text-xs text-muted-foreground">Logo</span>}
+          <input className={`${field} flex-1`} placeholder="URL del logo (https://…)" value={logo} onChange={(e) => setLogo(e.target.value)} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo.mutate(f); e.target.value = ""; }} />
+          <Button type="button" variant="outline" disabled={uploadLogo.isPending} onClick={() => fileRef.current?.click()}>
+            {uploadLogo.isPending ? "Subiendo…" : "Subir archivo"}
+          </Button>
+          {logo && <Button type="button" variant="ghost" onClick={() => setLogo("")}>Quitar</Button>}
+        </div>
       </form>
       <select className={`${field} mb-3 max-w-xs`} value={filter} onChange={(e) => setFilter(e.target.value)}>
         <option value="">Todas las categorías</option>
@@ -169,12 +243,12 @@ function TeamsAdmin() {
         {list.map((t) => (
           <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
             <span className="flex items-center gap-2">
-              <span className="rounded bg-secondary px-1.5 py-0.5 font-display">{t.short_name}</span>
+              <TeamLogo team={t} />
               <span className="font-semibold">{t.name}</span>{t.state && <span className="rounded border border-accent px-1 text-xs text-accent">{stateTag(t)}</span>}
               <span className="text-muted-foreground">· {catName(t.category_id)}{t.group_name ? ` · Grupo ${t.group_name}` : ""}</span>
             </span>
             <span className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => { setEditing(t); setName(t.name); setShort(t.short_name); setCatId(t.category_id ?? ""); setGroup(t.group_name ?? ""); setOrigin(t.state ?? ""); }}>Editar</Button>
+              <Button size="sm" variant="outline" onClick={() => { setEditing(t); setName(t.name); setShort(t.short_name); setCatId(t.category_id ?? ""); setGroup(t.group_name ?? ""); setOrigin(t.state ?? ""); setLogo(t.logo_url ?? ""); }}>Editar</Button>
               <Button size="sm" variant="destructive" onClick={() => confirm(`¿Eliminar ${t.name}?`) && remove.mutate(t.id)}>Eliminar</Button>
             </span>
           </li>

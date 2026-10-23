@@ -2,6 +2,7 @@ import type { Match, Team } from "@/lib/tournament";
 import { STATUS_LABELS, formatDate } from "@/lib/tournament";
 import { cn } from "@/lib/utils";
 import { StateBadge } from "@/components/StateBadge";
+import { TeamLogo } from "@/components/TeamLogo";
 
 export function MatchCard({ match, teams }: { match: Match; teams: Map<string, Team> }) {
   const home = teams.get(match.home_team_id);
@@ -24,7 +25,7 @@ export function MatchCard({ match, teams }: { match: Match; teams: Map<string, T
       </div>
       {[{ t: home, s: match.home_score, o: match.away_score }, { t: away, s: match.away_score, o: match.home_score }].map((row, i) => (
         <div key={i} className="flex items-center justify-between py-1">
-          <span className={cn("font-semibold", played && row.s > row.o && "text-accent")}>{row.t?.name ?? "—"}<StateBadge team={row.t} /></span>
+          <span className={cn("flex items-center gap-2 font-semibold", played && row.s > row.o && "text-accent")}><TeamLogo team={row.t} />{row.t?.name ?? "—"}<StateBadge team={row.t} /></span>
           <span className="font-display text-3xl tabular">{played ? row.s : "-"}</span>
         </div>
       ))}
