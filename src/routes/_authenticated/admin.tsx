@@ -224,6 +224,15 @@ function TeamsAdmin() {
         </select>
         <Button type="submit" disabled={save.isPending}>{editing ? "Guardar" : "Agregar"}</Button>
         {editing && <Button type="button" variant="outline" onClick={reset}>Cancelar</Button>}
+        <div className="flex items-center gap-2 sm:col-span-7">
+          {logo ? <img src={logo} alt="Logo" className="h-10 w-10 rounded-full border border-border object-contain" /> : <span className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-border text-xs text-muted-foreground">Logo</span>}
+          <input className={`${field} flex-1`} placeholder="URL del logo (https://…)" value={logo} onChange={(e) => setLogo(e.target.value)} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo.mutate(f); e.target.value = ""; }} />
+          <Button type="button" variant="outline" disabled={uploadLogo.isPending} onClick={() => fileRef.current?.click()}>
+            {uploadLogo.isPending ? "Subiendo…" : "Subir archivo"}
+          </Button>
+          {logo && <Button type="button" variant="ghost" onClick={() => setLogo("")}>Quitar</Button>}
+        </div>
       </form>
       <select className={`${field} mb-3 max-w-xs`} value={filter} onChange={(e) => setFilter(e.target.value)}>
         <option value="">Todas las categorías</option>
@@ -234,12 +243,12 @@ function TeamsAdmin() {
         {list.map((t) => (
           <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
             <span className="flex items-center gap-2">
-              <span className="rounded bg-secondary px-1.5 py-0.5 font-display">{t.short_name}</span>
+              <TeamLogo team={t} />
               <span className="font-semibold">{t.name}</span>{t.state && <span className="rounded border border-accent px-1 text-xs text-accent">{stateTag(t)}</span>}
               <span className="text-muted-foreground">· {catName(t.category_id)}{t.group_name ? ` · Grupo ${t.group_name}` : ""}</span>
             </span>
             <span className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => { setEditing(t); setName(t.name); setShort(t.short_name); setCatId(t.category_id ?? ""); setGroup(t.group_name ?? ""); setOrigin(t.state ?? ""); }}>Editar</Button>
+              <Button size="sm" variant="outline" onClick={() => { setEditing(t); setName(t.name); setShort(t.short_name); setCatId(t.category_id ?? ""); setGroup(t.group_name ?? ""); setOrigin(t.state ?? ""); setLogo(t.logo_url ?? ""); }}>Editar</Button>
               <Button size="sm" variant="destructive" onClick={() => confirm(`¿Eliminar ${t.name}?`) && remove.mutate(t.id)}>Eliminar</Button>
             </span>
           </li>
