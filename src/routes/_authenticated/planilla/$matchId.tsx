@@ -11,6 +11,7 @@ import { useScorerRole } from "@/lib/use-scorer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StateBadge } from "@/components/StateBadge";
+import { TeamLogo } from "@/components/TeamLogo";
 
 export const Route = createFileRoute("/_authenticated/planilla/$matchId")({
   head: () => ({
@@ -100,9 +101,9 @@ function MatchCapture() {
           {cats.data?.find((c) => c.id === match.category_id)?.name ?? match.category} · J{match.round} · {match.field} · <span className={cn(match.status === "en_vivo" && "text-live")}>{STATUS_LABELS[match.status]}</span>
         </div>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
-          <div className="font-semibold">{home?.name}</div>
+          <div className="flex items-center justify-end gap-2 font-semibold"><TeamLogo team={home} className="h-9 w-9" />{home?.name}</div>
           <div className="font-display text-6xl tabular">{match.home_score}<span className="mx-2 text-muted-foreground">–</span>{match.away_score}</div>
-          <div className="font-semibold">{away?.name}</div>
+          <div className="flex items-center justify-start gap-2 font-semibold">{away?.name}<TeamLogo team={away} className="h-9 w-9" /></div>
         </div>
       </div>
 
@@ -129,7 +130,7 @@ function MatchCapture() {
                 side === s ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground",
               )}
             >
-              {(s === "home" ? home : away)?.short_name} <span className="text-sm font-sans">{(s === "home" ? home : away)?.name}</span><StateBadge team={s === "home" ? home : away} />
+              <TeamLogo team={s === "home" ? home : away} /> <span className="text-sm font-sans">{(s === "home" ? home : away)?.name}</span><StateBadge team={s === "home" ? home : away} />
             </button>
           ))}
         </div>
