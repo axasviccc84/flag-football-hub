@@ -160,9 +160,26 @@ function TeamsAdmin() {
   const [catId, setCatId] = useState("");
   const [group, setGroup] = useState("");
   const [origin, setOrigin] = useState("");
+  const [logo, setLogo] = useState("");
   const [filter, setFilter] = useState("");
-  const reset = () => { setEditing(null); setName(""); setShort(""); setGroup(""); setOrigin(""); };
+  const fileRef = useRef<HTMLInputElement>(null);
+  const reset = () => { setEditing(null); setName(""); setShort(""); setGroup(""); setOrigin(""); setLogo(""); };
   const effectiveCat = catId || cats.data?.[0]?.id || "";
+
+  const uploadLogo = useMutation({
+    mutationFn: async (file: File) => {
+      if (file.size > 2 * 1024 * 1024) throw new Error("El logo no debe pesar más de 2 MB");
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("logos").upload(path, file, { contentType: file.type });
+      if (error) throw error;
+      const { data, error: signErr } = await supabase.storage.from("logos").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signErr) throw signErr;
+      return data.signedUrl;
+    },
+    onSuccess: (url) => { setLogo(url); toast.success("Logo subido"); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
 
   const save = useMutation({
     mutationFn: async () => {
@@ -170,7 +187,7 @@ function TeamsAdmin() {
       if (!name.trim()) throw new Error("Escribe el nombre del equipo");
       if (!/^[A-Z0-9]{3}$/.test(short)) throw new Error("La abreviatura debe tener 3 letras");
       if (!cat) throw new Error("Selecciona una categoría");
-      const row = { name: name.trim(), short_name: short, category_id: cat.id, category: cat.gender, group_name: group || null, state: origin.trim() || null };
+      const row = { name: name.trim(), short_name: short, category_id: cat.id, category: cat.gender, group_name: group || null, state: origin.trim() || null, logo_url: logo.trim() || null };
       const { error } = editing
         ? await supabase.from("teams").update(row).eq("id", editing.id)
         : await supabase.from("teams").insert(row);
