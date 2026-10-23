@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { parseCategory, useCategory } from "@/lib/tournament";
+import { useBranding } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -12,6 +13,9 @@ export function SiteHeader() {
   const { pathname, search } = useRouterState({ select: (s) => s.location });
   const cat = parseCategory((search as Record<string, unknown>)["cat"]);
   const category = useCategory(cat);
+  const branding = useBranding();
+  const words = branding.name.trim().split(/\s+/);
+  const lastWord = words.length > 1 ? words.pop() : null;
   const isPublic = pathname === "/" || pathname === "/calendario" || pathname === "/lideres";
 
   return (
@@ -20,7 +24,7 @@ export function SiteHeader() {
         <Link to="/" search={{ cat }} className="flex items-center gap-2">
           <img src="/icon-192.png" alt="" width={36} height={36} className="rounded-md" />
           <span className="font-display text-2xl leading-none">
-            Flag<span className="text-primary">Torneo</span>
+            {lastWord ? <>{words.join(" ")} <span className="text-primary">{lastWord}</span></> : <span className="text-primary">{branding.name}</span>}
           </span>
         </Link>
         <div className="flex gap-2">
