@@ -84,7 +84,7 @@ function BracketBox({ match, teams, label, seeds, onClick }: { onClick?: (() => 
       <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       {rows.map((r, i) => (
         <div key={i} className="flex items-center justify-between py-1">
-          <span className={cn("flex items-center gap-2 font-semibold", played && r.s > r.o && "text-accent", !r.t && "text-muted-foreground")}>{r.t && <span className="rounded bg-secondary px-1.5 py-0.5 font-display text-sm">{r.t.short_name}</span>}{r.t?.name ?? "Por definir"}<StateBadge team={r.t} /></span>
+          <span className={cn("flex items-center gap-2 font-semibold", played && r.s > r.o && "text-accent", !r.t && "text-muted-foreground")}<TeamLogo team={r.t} />{r.t?.name ?? "Por definir"}<StateBadge team={r.t} /></span>
           <span className="font-display text-2xl tabular">{played ? r.s : "-"}</span>
         </div>
       ))}

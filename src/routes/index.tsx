@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { computeStandings, matchesQuery, parseCategory, teamsQuery, useLiveTournament, useCategory } from "@/lib/tournament";
+import { TeamLogo } from "@/components/TeamLogo";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -51,8 +52,10 @@ function Standings() {
               <tr key={r.team.id} className="border-t border-border">
                 <td className={cn("px-3 py-3 font-display text-xl", i === 0 ? "text-accent" : "text-muted-foreground")}>{i + 1}</td>
                 <td className="px-3 py-3">
-                  <span className="mr-2 rounded bg-secondary px-1.5 py-0.5 font-display text-sm">{r.team.short_name}</span>
-                  <span className="font-semibold">{r.team.name}</span>
+                  <span className="flex items-center gap-2">
+                    <TeamLogo team={r.team} />
+                    <span className="font-semibold">{r.team.name}</span>
+                  </span>
                 </td>
                 <td className="px-2 py-3 text-center">{r.jj}</td>
                 <td className="px-2 py-3 text-center">{r.jg}</td>
