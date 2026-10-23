@@ -36,6 +36,13 @@
       "when": 1792691935678,
       "tag": "0004_advance_bracket_on_insert",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792768157338,
+      "tag": "0005_branding_and_team_logos",
+      "breakpoints": true
     }
   ]
 }

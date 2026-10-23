@@ -172,6 +172,27 @@ export type Database = {
           },
         ]
       }
+      settings: {
+        Row: {
+          id: boolean
+          primary_color: string
+          tournament_name: string
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          primary_color?: string
+          tournament_name?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          primary_color?: string
+          tournament_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       teams: {
         Row: {
           category: Database["public"]["Enums"]["category"]
@@ -179,6 +200,7 @@ export type Database = {
           created_at: string
           group_name: string | null
           id: string
+          logo_url: string | null
           name: string
           short_name: string
           state: string | null
@@ -189,6 +211,7 @@ export type Database = {
           created_at?: string
           group_name?: string | null
           id?: string
+          logo_url?: string | null
           name: string
           short_name: string
           state?: string | null
@@ -199,6 +222,7 @@ export type Database = {
           created_at?: string
           group_name?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
           short_name?: string
           state?: string | null
