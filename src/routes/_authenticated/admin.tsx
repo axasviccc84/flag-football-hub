@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { allTeamsQuery, categoriesQuery, matchesQuery, GENDERS, GROUPS, PHASE_LABELS, STATUS_LABELS, formatDate, type MatchPhase, useLiveTournament, type CategoryRow, type Gender, type Team } from "@/lib/tournament";
+import { settingsQuery, DEFAULT_COLOR, DEFAULT_NAME } from "@/lib/branding";
 import { useScorerRole } from "@/lib/use-scorer";
+import { useMyRoles } from "@/lib/use-session-roles";
 import { Button } from "@/components/ui/button";
 import { FormatWizard } from "@/components/FormatWizard";
+import { TeamLogo } from "@/components/TeamLogo";
 import { stateTag } from "@/lib/generator";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -34,17 +37,62 @@ function AdminPage() {
   const { user } = Route.useRouteContext();
   useLiveTournament();
   const scorer = useScorerRole(user.id);
+  const roles = useMyRoles();
   if (scorer.isLoading) return <p className="text-muted-foreground">Cargando…</p>;
   if (!scorer.data)
     return <div className="rounded-xl border border-destructive bg-card p-4 text-sm">Tu cuenta no tiene permiso de administrador o planillero.</div>;
   return (
     <section className="space-y-10">
       <h1 className="text-4xl">Administración</h1>
+      {roles.isAdmin && <BrandingAdmin />}
       <CategoriesAdmin />
       <TeamsAdmin />
       <FormatWizard />
       <MatchesAdmin />
     </section>
+  );
+}
+
+function BrandingAdmin() {
+  const qc = useQueryClient();
+  const settings = useQuery(settingsQuery());
+  const [name, setName] = useState<string | null>(null);
+  const [color, setColor] = useState<string | null>(null);
+  const nameVal = name ?? settings.data?.tournament_name ?? DEFAULT_NAME;
+  const colorVal = color ?? settings.data?.primary_color ?? DEFAULT_COLOR;
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!nameVal.trim()) throw new Error("Escribe el nombre del torneo");
+      if (!/^#[0-9a-fA-F]{6}$/.test(colorVal)) throw new Error("El color debe ser hex, ej. #f97316");
+      const { error } = await supabase.from("settings").update({ tournament_name: nameVal.trim(), primary_color: colorVal, updated_at: new Date().toISOString() }).eq("id", true);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Marca actualizada"); setName(null); setColor(null); qc.invalidateQueries({ queryKey: ["settings"] }); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+
+  return (
+    <div>
+      <h2 className="mb-3 text-2xl text-primary">Marca del Torneo</h2>
+      <form className="grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-[1fr_auto_auto]" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+        <label className="block">
+          <span className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Nombre del torneo</span>
+          <input className={field} placeholder="Ej. FLAG TORNEO 2026" value={nameVal} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Color de acento</span>
+          <span className="flex items-center gap-2">
+            <input type="color" value={colorVal} onChange={(e) => setColor(e.target.value)} className="h-10 w-12 cursor-pointer rounded-md border border-input bg-background" />
+            <input className={`${field} w-28 font-mono`} value={colorVal} onChange={(e) => setColor(e.target.value)} />
+          </span>
+        </label>
+        <span className="flex items-end">
+          <Button type="submit" disabled={save.isPending}>Guardar marca</Button>
+        </span>
+      </form>
+      <p className="mt-2 text-xs text-muted-foreground">El nombre aparece en la barra superior y el color se aplica a botones, pestañas activas y destacados del bracket.</p>
+    </div>
   );
 }
 
