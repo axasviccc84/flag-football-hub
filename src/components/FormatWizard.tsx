@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { allTeamsQuery, categoriesQuery, computeStandings, matchesQuery, type Team } from "@/lib/tournament";
-import { rankingRounds, roundRobin, splitGroups, stateTag, type Pair } from "@/lib/generator";
+import { oddTwoGameCycle, rankingRounds, roundRobin, splitGroups, stateTag, type Pair } from "@/lib/generator";
 import { Button } from "@/components/ui/button";
 
 const field = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary";
@@ -41,7 +41,10 @@ export function FormatWizard() {
         throw new Error("Esta categoría ya tiene partidos de fase regular. Elimínalos primero.");
       let pairs: Pair[];
       if (effMode === "rr") pairs = roundRobin(catTeams);
-      else if (effMode === "ranking") pairs = rankingRounds(catTeams, rounds);
+      else if (effMode === "ranking") {
+        if (n % 2 && rounds !== 2) throw new Error(`Con ${n} equipos (impar) usa 2 jornadas para que todos jueguen exactamente 2 partidos.`);
+        pairs = n % 2 ? oddTwoGameCycle(catTeams) : rankingRounds(catTeams, rounds);
+      }
       else {
         const groups = splitGroups(catTeams, groupCount);
         for (const [g, list] of groups) {
@@ -53,7 +56,7 @@ export function FormatWizard() {
         }
         pairs = [...groups].flatMap(([g, list]) => roundRobin(list, g));
       }
-      pairs.sort((a, b) => a.round - b.round);
+      pairs.sort((a, b) => a.round - b.round || Number(!!a.adjust) - Number(!!b.adjust));
       const t0 = new Date(start).getTime();
       const rows = pairs.map((p, i) => ({
         category_id: cat.id, category: cat.gender, home_team_id: p.home.id, away_team_id: p.away.id,
@@ -81,7 +84,10 @@ export function FormatWizard() {
       const regular = catMatches.filter((m) => m.phase === "grupos" || m.phase === "cruce");
       if (regular.length === 0 || regular.some((m) => m.status !== "final"))
         throw new Error("Todos los partidos de fase regular deben estar en Final.");
-      const table = computeStandings(catTeams, regular).map((r) => r.team);
+      const rowsSt = computeStandings(catTeams, regular);
+      const short = rowsSt.filter((r) => r.jj < 2);
+      if (short.length) throw new Error(`Todos deben tener PJ = 2 antes de sembrar. Faltan: ${short.map((r) => `${r.team.name} (PJ ${r.jj})`).join(", ")}`);
+      const table = rowsSt.map((r) => r.team);
       const last = regular.reduce((mx, m) => Math.max(mx, new Date(m.scheduled_at).getTime()), 0);
       const when = new Date((start ? new Date(start).getTime() : last + 86400000)).toISOString();
       const maxRound = Math.max(...regular.map((m) => m.round));

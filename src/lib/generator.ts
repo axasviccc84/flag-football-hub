@@ -1,6 +1,6 @@
 import type { Team } from "@/lib/tournament";
 
-export type Pair = { home: Team; away: Team; round: number; group?: string | null | undefined };
+export type Pair = { home: Team; away: Team; round: number; group?: string | null | undefined; adjust?: boolean };
 
 const sameState = (a: Team, b: Team) => !!a.state && !!b.state && a.state.trim().toLowerCase() === b.state.trim().toLowerCase();
 const key = (a: Team, b: Team) => [a.id, b.id].sort().join("|");
@@ -73,4 +73,24 @@ export function splitGroups(teams: Team[], count: number): Map<string, Team[]> {
 export function stateTag(t: Team | undefined) {
   const s = t?.state?.trim();
   return s ? s.slice(0, 3).toUpperCase() : "";
+}
+
+/**
+ * Odd team count, 2 games each: builds one closed cycle (n matches, every team exactly 2).
+ * Jornada 1 and 2 alternate around the cycle; the closing edge links the two teams
+ * that rested and is returned last as the "partido de ajuste".
+ */
+export function oddTwoGameCycle(teams: Team[]): Pair[] {
+  const n = teams.length;
+  let best: Team[] = []; let bestCost = Infinity;
+  for (let attempt = 0; attempt < 500; attempt++) {
+    const order = shuffle(teams);
+    let cost = 0;
+    for (let i = 0; i < n; i++) if (sameState(order[i]!, order[(i + 1) % n]!)) cost++;
+    if (cost < bestCost) { best = order; bestCost = cost; if (!cost) break; }
+  }
+  const out: Pair[] = [];
+  for (let i = 0; i < n - 1; i++) out.push({ home: best[i]!, away: best[i + 1]!, round: i % 2 ? 2 : 1 });
+  out.push({ home: best[n - 1]!, away: best[0]!, round: 2, adjust: true });
+  return out;
 }
