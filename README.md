@@ -1,14 +1,22 @@
-# Welcome to your Lovable project
+# Flag Football Hub
+
+Crea una aplicación web moderna (PWA instalable) para un torneo de Flag Football con reglas IFAF 2023. Incluye:
+
+Vista pública con Selector de Categoría (Varonil, Femenil, Mixto), Tabla de Posiciones (JJ, JG, JP, PF, PC, DIF, PTS), Calendario de Partidos y Tabla de Líderes por número de jersey.
+
+Panel de Captura para Planilleros en Campo para ingresar el marcador y eventos individuales por jersey (TDs, Conversiones 1/2 pts, INTs, Sacks).
+
+Conexión integrada con Supabase
 
 This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/3d174d60-2df8-4acc-ae4b-fe3bca850aa1).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +28,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
