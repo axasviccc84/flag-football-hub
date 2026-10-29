@@ -165,9 +165,54 @@ export function computeStandings(teams: Team[], matches: Match[]): StandingRow[]
     else if (m.home_score < m.away_score) { a.jg++; h.jp++; a.pts += 3; }
     else { h.je++; a.je++; h.pts++; a.pts++; }
   }
-  return [...rows.values()]
-    .map((r) => ({ ...r, dif: r.pf - r.pc }))
-    .sort((x, y) => y.pts - x.pts || y.dif - x.dif || y.pf - x.pf || x.team.name.localeCompare(y.team.name));
+  const all = [...rows.values()].map((r) => ({ ...r, dif: r.pf - r.pc }));
+  all.sort((x, y) => y.pts - x.pts);
+  const out: StandingRow[] = [];
+  for (let i = 0; i < all.length; ) {
+    let j = i;
+    while (j < all.length && all[j]!.pts === all[i]!.pts) j++;
+    out.push(...breakTie(all.slice(i, j), matches));
+    i = j;
+  }
+  return out;
+}
+
+/** Stable "coin toss": deterministic hash of the team id so the order never flickers. */
+function coin(id: string) {
+  let h = 2166136261;
+  for (let k = 0; k < id.length; k++) h = Math.imul(h ^ id.charCodeAt(k), 16777619);
+  return h >>> 0;
+}
+
+/**
+ * Tiebreak among teams with equal PTS:
+ * 1-3 (only if every tied team played every other): H2H win %, H2H point diff, H2H points scored;
+ * 4 overall DIF; 5 overall PF; 6 coin toss.
+ */
+function breakTie(group: StandingRow[], matches: Match[]): StandingRow[] {
+  if (group.length < 2) return group;
+  const ids = new Set(group.map((r) => r.team.id));
+  const h2h = new Map(group.map((r) => [r.team.id, { g: 0, w: 0, pf: 0, pc: 0 }]));
+  const played = new Set<string>();
+  for (const m of matches) {
+    if (m.status !== "final" || !ids.has(m.home_team_id) || !ids.has(m.away_team_id)) continue;
+    const h = h2h.get(m.home_team_id)!, a = h2h.get(m.away_team_id)!;
+    h.g++; a.g++;
+    h.pf += m.home_score; h.pc += m.away_score; a.pf += m.away_score; a.pc += m.home_score;
+    if (m.home_score > m.away_score) h.w++; else if (m.home_score < m.away_score) a.w++; else { h.w += 0.5; a.w += 0.5; }
+    played.add([m.home_team_id, m.away_team_id].sort().join("|"));
+  }
+  const n = group.length;
+  const allPlayed = played.size === (n * (n - 1)) / 2;
+  const pct = (id: string) => { const s = h2h.get(id)!; return s.g ? s.w / s.g : 0; };
+  return [...group].sort((x, y) => {
+    const a = h2h.get(x.team.id)!, b = h2h.get(y.team.id)!;
+    if (allPlayed) {
+      const d = pct(y.team.id) - pct(x.team.id) || (b.pf - b.pc) - (a.pf - a.pc) || b.pf - a.pf;
+      if (d) return d;
+    }
+    return y.dif - x.dif || y.pf - x.pf || coin(y.team.id) - coin(x.team.id);
+  });
 }
 
 export type LeaderRow = {
